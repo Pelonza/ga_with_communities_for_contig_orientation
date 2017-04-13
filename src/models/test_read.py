@@ -11,12 +11,15 @@ import pandas as pd
 #This should be replaced by determining the number of unique contigs in a 
 # tally file.
 filename='tallies'
-IND_SIZE= 10  #Hardcodes an individual of size 10
 
+fh=open(filename,'rb')
 
+#Read in tally file, assuming a 6-column format, no duplicated edges
+G=nx.read_edgelist(fh,nodetype=int, data=(('w1',int),('w2',int),('w3',int),('w4',int)))
 
+#Set all edges to 'flipable'
+nx.set_node_attributes(G, 'flippable', True)
 
-creator.create("FitnessMax", base.Fitness, weights=(1.0,))
 
 #G.add_weighted_edges_from(list), list has weights in list.
 
