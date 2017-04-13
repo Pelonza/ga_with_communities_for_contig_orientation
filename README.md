@@ -54,3 +54,13 @@ Project Organization
 --------
 
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+
+
+Notes:
+Input tally files are assumed to have NO duplicated edges in the file. i.e.:
+....
+C B # # # # (okay)
+C B # # # # (overwrites above edge)
+B C # # # # (overwrites above edges)
+....
+
