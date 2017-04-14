@@ -14,14 +14,16 @@ import os
 import json
 from deap import tools
 
-def trial(args):
+def trial(args, params=list([100,2,0.10,0.20,0.1,0.2])):
     
     G, Init_mps = ld.load_data(args.ifilename)
     
     logbook=tools.Logbook()
     
     for i in range(args.n):
-        trialpop, trialstats, trialhof, triallog = ga_func.gaopt_Uni(G, Init_mps)
+        trialpop, trialstats, trialhof, triallog = ga_func.gaopt_Uni(G, Init_mps, params)
+        
+        #print(triallog)
         
         #This un-packs the logbook generated from the optimization performed 
         # above, by keeping each track of information connected to a trial.
@@ -31,7 +33,7 @@ def trial(args):
         
 #    with open(args.oorient, 'w+') as f:
 #        json.dump(myhof[0], f)
-    with open(args.output_stats, 'w+') as f:
+    with open(args.output_stats, 'w') as f:
         json.dump(logbook,f)
         
 def is_valid_file(parser, arg):
@@ -74,7 +76,7 @@ def get_parser():
                         metavar="FILE")    
     parser.add_argument("-n",
                         dest="n",
-                        default=5,
+                        default=2,
                         type=int,
                         help="how many lines get printed")
     parser.add_argument("-q", "--quiet",
@@ -87,11 +89,11 @@ def get_parser():
 
 if __name__ == "__main__":
     """
-    Main that calls a single trial with currently default parameters.
+    Main that calls a single parameter trial, with multiple runs (args=n)
+    with currently default parameters.
     """
     
     args = get_parser().parse_args()
-    
     trial(args)
 
 
