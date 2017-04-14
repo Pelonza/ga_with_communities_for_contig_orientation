@@ -22,15 +22,13 @@ def trial(args):
     
     for i in range(args.n):
         trialpop, trialstats, trialhof, triallog = ga_func.gaopt_Uni(G, Init_mps)
-        #print(triallog)
+        
+        #This un-packs the logbook generated from the optimization performed 
+        # above, by keeping each track of information connected to a trial.
         logbook.record(trial=i, best=trialhof[0], genmin=triallog.select("min"), 
                        genmax=triallog.select("max"), genstd=triallog.select("std"), 
-                       genavg=triallog.select("mean"))
-    
-    #print(logbook.select("best", "trial"))
-    #print(logbook.select('trial', 'genmax')) #chapters["logs"].select("max"))
-
-    
+                       genavg=triallog.select("mean"), gengen=triallog.select("gen"))
+        
 #    with open(args.oorient, 'w+') as f:
 #        json.dump(myhof[0], f)
     with open(args.output_stats, 'w+') as f:
