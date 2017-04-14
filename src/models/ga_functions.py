@@ -24,7 +24,9 @@ from deap import tools
 from deap import algorithms
 
 #multiprocessing
-import multiprocessing
+#import multiprocessing
+#from pathos.multiprocessing import ProcessingPool as Pool
+from scoop import futures
 
 import random
 import numpy as np
@@ -43,7 +45,7 @@ def evaluate(individual, G, Init_pairs):
     
     return (Orient_pairs[1]/Orient_pairs[0], )
 
-def gaopt_Uni(G, Initial_matepairs, params=list([100,100,0.10,0.20,0.1,0.2])):
+def gaopt_Uni(G, Initial_matepairs, pool, params=list([100,100,0.10,0.20,0.1,0.2])):
     #Note this is included for readability/reference.
     #Set some GA parameters:
     IND_SIZE = nx.number_of_nodes(G)    #Size of each individual in the population
@@ -70,6 +72,7 @@ def gaopt_Uni(G, Initial_matepairs, params=list([100,100,0.10,0.20,0.1,0.2])):
     toolbox.register("select", tools.selTournament, tournsize=3)
     
     #toolbox.register("map", pool.map)
+    toolbox.register("map", futures.map)
     
     hof= tools.HallOfFame(1)
     

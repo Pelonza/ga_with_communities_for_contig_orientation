@@ -9,6 +9,7 @@ graph data-structure and initial scores.
 """
 
 import networkx as nx
+from pathos.multiprocessing import ProcessingPool as Pool
 
 ## NetworkX Initializations and data reading.
 
