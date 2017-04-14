@@ -12,18 +12,29 @@ import ga_functions as ga_func #Contains self-defined functions for GA
 import load_data as ld #Contains the load_data function.
 import os
 import json
-import multiprocessing
+from deap import tools
 
 def trial(args):
     
     G, Init_mps = ld.load_data(args.ifilename)
     
-    mypop, mystats, myhof, mylog = ga_func.gaopt_Uni(G, Init_mps)
+    logbook=tools.Logbook()
     
-    with open(args.oorient, 'w+') as f:
-        json.dump(myhof[0], f)
+    for i in range(args.n):
+        trialpop, trialstats, trialhof, triallog = ga_func.gaopt_Uni(G, Init_mps)
+        #print(triallog)
+        logbook.record(trial=i, best=trialhof[0], genmin=triallog.select("min"), 
+                       genmax=triallog.select("max"), genstd=triallog.select("std"), 
+                       genavg=triallog.select("mean"))
+    
+    #print(logbook.select("best", "trial"))
+    #print(logbook.select('trial', 'genmax')) #chapters["logs"].select("max"))
+
+    
+#    with open(args.oorient, 'w+') as f:
+#        json.dump(myhof[0], f)
     with open(args.output_stats, 'w+') as f:
-        json.dump(mylog,f)
+        json.dump(logbook,f)
         
 def is_valid_file(parser, arg):
     """
@@ -65,7 +76,7 @@ def get_parser():
                         metavar="FILE")    
     parser.add_argument("-n",
                         dest="n",
-                        default=10,
+                        default=5,
                         type=int,
                         help="how many lines get printed")
     parser.add_argument("-q", "--quiet",
@@ -83,7 +94,6 @@ if __name__ == "__main__":
     
     args = get_parser().parse_args()
     
-    #pool = multiprocessing.Pool()
     trial(args)
 
 
