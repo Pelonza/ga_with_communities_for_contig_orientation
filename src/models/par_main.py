@@ -61,20 +61,27 @@ def load_data(input_filename):
     ig_G = ig.Graph()
     ig_G = ig_G.Read_GML("tally.gml")
 
-    # Compute basic data about the tally file/input data.
-    Initial_matepairs = list([0, 0, 0])  # (Total, Good, Bad) Total_matepairs=0
+    
     for edge in range(ig_G.ecount()):
         # Define an additional edge attribute of total pairs
         ig_G.es[edge]['mates'] = ig_G.es[edge]['w1'] + ig_G.es[edge]['w2'] 
         # If col3/4 included    # + ig_G.es[edge]['w3'] + ig_G.es[edge]['w4'])
 
-        Initial_matepairs[0] = Initial_matepairs[0] + ig_G.es[edge]['mates']        
-        Initial_matepairs[1] = Initial_matepairs[1] + ig_G.es[edge]['w1']
-        Initial_matepairs[2] = Initial_matepairs[2] + ig_G.es[edge]['w2']
+    Initial_matepairs = compute_initial_pairs(ig_G)
         
-
     return ig_G, Initial_matepairs
 
+def compute_initial_pairs(G):
+    # Compute basic data about the tally file/input data.
+    # Uses an igraph -style graph.
+    # Assumes edges in G have "mates", "w1" and "w2" properties
+    Initial_matepairs = list([0, 0, 0])  # (Total, Good, Bad) Total_matepairs=0
+    for edge in range(G.ecount()):
+        Initial_matepairs[0] = Initial_matepairs[0] + G.es[edge]['mates']        
+        Initial_matepairs[1] = Initial_matepairs[1] + G.es[edge]['w1']
+        Initial_matepairs[2] = Initial_matepairs[2] + G.es[edge]['w2']
+    
+    return Initial_matepairs
 
 def is_valid_file(parser, arg):
     """
@@ -138,6 +145,8 @@ stats.register("max", max)
 stats.register("min", min)
 stats.register("std", np.std)
 
+hof = tools.HallOfFame(1)
+
 # Register elements of the toolbox that apply to both full and community GA.
 # This does not necessarily need to be global (I think?)
 toolbox = base.Toolbox()
@@ -145,7 +154,83 @@ toolbox.register("attr_bool", random.randint, 0, 1)
 toolbox.register("select", tools.selTournament, tournsize=3)
 
 # %%
+def trial_loop(args, ea_alg_params):
+    
+    logbook=tools.Logbook()
+    
+    for jj in range(args.ntrials):
+        pop, tlogbook = algorithms.eaSimple(ea_alg_params[0][jj], ea_alg_params[1],
+                                            cxpb=ea_alg_params[2],
+                                            mutpb=ea_alg_params[3],
+                                            ngen=ea_alg_params[4],
+                                            stats=ea_alg_params[5],
+                                            halloffame=ea_alg_params[6],
+                                            verbose=False)
+        logbook.record(trial=jj, tmax=tlogbook.select('max'),
+                       tbestort=hof[0], tgen=tlogbook.select('gen'),
+                       tmin=tlogbook.select('min'),
+                       tstd=tlogbook.select('std'),
+                       tmean=tlogbook.select('mean'))
+    return logbook
 
+def Run_GA(args, G, params):
+    # Sets up and runs the GA using DEAP on the input graph.
+    
+    # Setup GA
+    # Note this is included for readability/reference.
+    # Set some GA parameters:
+    IND_SIZE = G.vcount()   # Size of individual in population
+    POP_SIZE = params[0]    # Size of the overall population
+    NGEN     = params[1]    # Number of generations to evolve for
+    MUT_PB   = params[2]    # Probability that an offspring will mutate
+    CX_PB    = params[3]    # Probability that two children will crossover 
+    MUT_IDPB = params[4]    # Independent probability of an attribute mutating
+    CX_IDPB  = params[5]    # Independent probability of an attribute crossover
+    
+    # Define objects for/from DEAP's toolbox
+    # Currently modeled largely off of their one_max example.
+    Init_mps = compute_initial_pairs(G)
+
+    toolbox.register("individual", tools.initRepeat, creator.Individual,
+                     toolbox.attr_bool, n=IND_SIZE)
+    toolbox.register("population", tools.initRepeat, list,
+                     toolbox.individual)
+    toolbox.register("evaluate", evaluate, G=G,
+                     Init_pairs=Init_mps)
+
+    # Above could be done outside of "__main__" ??
+    # ====================================
+
+    # These have to be modified/looped over to modify the
+    #  INDIVIDUAL crossover or mutation rate of orientations.
+    toolbox.register("mate", tools.cxUniform, indpb=CX_IDPB)
+    toolbox.register("mutate", tools.mutFlipBit, indpb=MUT_IDPB)
+
+    local_logbook=tools.Logbook()
+    
+    hof.clear()  # Resets the hall of fame to keep the best from these trials
+    for i in range(args.ntrials):
+        pop = toolbox.population(n=POP_SIZE)
+        pop, tlogbook = algorithms.eaSimple(pop, toolbox,
+                                            cxpb=CX_PB,
+                                            mutpb=MUT_PB,
+                                            ngen=NGEN,
+                                            stats=stats,
+                                            halloffame=hof,
+                                            verbose=False)
+        local_logbook.record(trial=i, tmax=tlogbook.select('max'),
+                       tbestort=hof[0], tgen=tlogbook.select('gen'),
+                       tmin=tlogbook.select('min'),
+                       tstd=tlogbook.select('std'),
+                       tmean=tlogbook.select('mean'))
+
+    best_ort = hof[0]
+   
+    
+    
+    
+    return G, best_ort, local_logbook
+# %%
 if __name__ == "__main__":
     """
     Main that calls a single parameter trial, with multiple runs (args=n)
@@ -158,6 +243,9 @@ if __name__ == "__main__":
 
     args = get_parser().parse_args()
     random.seed(1)  # For testing/reproducibility.
+    
+    pool = multiprocessing.Pool()
+    toolbox.register("map", pool.map)
     
     # Located near top to ease changing them. May be overwritten in testing.
     params_full = list([200, 10, 0.10, 0.20, 0.1, 0.2])
@@ -182,11 +270,7 @@ if __name__ == "__main__":
     G_comm = G_full_clusters.cluster_graph(combine_edges=sum)
 
     # Compute basic data about the tally file/input data.
-    Init_mps_comm = list([0, 0, 0])  # (Total, Good, Bad) Total_matepairs=0
-    for edge in range(G_comm.ecount()):
-        Init_mps_comm[0] = Init_mps_comm[0] + G_comm.es[edge]['mates']        
-        Init_mps_comm[1] = Init_mps_comm[1] + G_comm.es[edge]['w1']
-        Init_mps_comm[2] = Init_mps_comm[2] + G_comm.es[edge]['w2']
+    Init_mps_comm = compute_initial_pairs(G_comm) 
     
     try:
         assert Init_mps_comm[0] != 0
@@ -194,124 +278,138 @@ if __name__ == "__main__":
         print("No matepairs (remained) in collapsed graph")
 
     # %%
-    # =======================
-    # Build toolbox for GA on the full original tally file given as input.
-    # =======================
+    myG, best_ort, logbook = Run_GA(args, G_comm, params_full)
     
-    # Note this is included for readability/reference.
-    # Set some GA parameters:
-    IND_SIZE = G_full.vcount()   # Size of individual in population
-    POP_SIZE = params_full[0]    # Size of the overall population
-    NGEN     = params_full[1]    # Number of generations to evolve for
-    MUT_PB   = params_full[2]    # Probability that an offspring will mutate
-    CX_PB    = params_full[3]    # Probability that two children will crossover 
-    MUT_IDPB = params_full[4]    # Independent probability of an attribute mutating
-    CX_IDPB  = params_full[5]    # Independent probability of an attribute crossover
-    
-    # Define objects for/from DEAP's toolbox
-    # Currently modeled largely off of their one_max example.
-
-    toolbox.register("individual_full", tools.initRepeat, creator.Individual,
-                     toolbox.attr_bool, n=IND_SIZE)
-    toolbox.register("population_full", tools.initRepeat, list,
-                     toolbox.individual_full)
-    toolbox.register("evaluate_full", evaluate, G=G_full,
-                     Init_pairs=Init_mps_full)
-
-    # Above could be done outside of "__main__" ??
-    # ====================================
-
-    # These have to be modified/looped over to modify the
-    #  INDIVIDUAL crossover or mutation rate of orientations.
-    toolbox.register("mate", tools.cxUniform, indpb=CX_IDPB)
-    toolbox.register("mutate", tools.mutFlipBit, indpb=MUT_IDPB)
-
-    pops_full = [toolbox.population_full(n=POP_SIZE) for i in range(args.ntrials)]
-    # ===============================================
-    # %%
-    # =======================
-    # Build toolbox for GA on the community reduced graph..
-    # =======================
-    
-    # Note this is included for readability/reference.
-    # Set some GA parameters:
-    IND_SIZE = G_comm.vcount()   # Size of individual in population
-    POP_SIZE = params_comm[0]    # Size of the overall population
-    NGEN     = params_comm[1]    # Number of generations to evolve for
-    MUT_PB   = params_comm[2]    # Probability that an offspring will mutate
-    CX_PB    = params_comm[3]    # Probability that two children will crossover 
-    MUT_IDPB = params_comm[4]    # Independent probability of an attribute mutating
-    CX_IDPB  = params_comm[5]    # Independent probability of an attribute crossover
-    
-    # Define objects for/from DEAP's toolbox
-    # Currently modeled largely off of their one_max example.
-
-    toolbox.register("individual_comm", tools.initRepeat, creator.Individual,
-                     toolbox.attr_bool, n=IND_SIZE)
-    toolbox.register("population_comm", tools.initRepeat, list,
-                     toolbox.individual_comm)
-    toolbox.register("evaluate_comm", evaluate, G=G_comm,
-                     Init_pairs=Init_mps_comm)
-
-    # Above could be done outside of "__main__" ??
-    # ====================================
-
-    # These have to be modified/looped over to modify the
-    #  INDIVIDUAL crossover or mutation rate of orientations.
-    toolbox.register("mate", tools.cxUniform, indpb=CX_IDPB)
-    toolbox.register("mutate", tools.mutFlipBit, indpb=MUT_IDPB)
-
-    pops_comm = [toolbox.population_comm(n=POP_SIZE) for i in range(args.ntrials)]
-    # ===============================================
-    # %%
-
-    # Below copies DEAP's multiprocessing one-max example inside __main__
-    # Includes a loop over multiple trials.
-    #
-    # Tried to use "scoop" for distributed computing (I think that'd be better)
-    #  but it didn't seem to work right. Would need to determine what actually
-    #  can be pickled/dill'd or not from DEAP, networkX and igraph.
-    
-    pool = multiprocessing.Pool()
-    toolbox.register("map", pool.map)
-
-    # I think these need to be unregistered to get the multiprocessing to work.
-    toolbox.unregister("attr_bool")
-    toolbox.unregister("individual_full")
-    toolbox.unregister("population_full")
-    toolbox.unregister("individual_comm")
-    toolbox.unregister("population_comm")
-
-    hof = tools.HallOfFame(1)
-
-    logbook = tools.Logbook()  # Logbook for all trials.
-
-    # Loop here to change crossover or mutation rates (CX_PB and MUT_PB).
-
-    # Have to explicitly register an 'evaluate' function to use simple alg.
-    toolbox.register("evaluate", toolbox.evaluate_comm)
-    
-    for jj in range(args.ntrials):
-        pop, tlogbook = algorithms.eaSimple(pops_comm[jj], toolbox, cxpb=CX_PB,
-                                            mutpb=MUT_PB, ngen=NGEN,
-                                            stats=stats, halloffame=hof,
-                                            verbose=False)
-        logbook.record(trial=jj, tmax=tlogbook.select('max'),
-                       tbestort=hof[0], tgen=tlogbook.select('gen'),
-                       tmin=tlogbook.select('min'),
-                       tstd=tlogbook.select('std'),
-                       tmean=tlogbook.select('mean'))
-
-    # End run trials of GA on full tally
-    # ====================================
-    
-    # %%
-
-
-
     print(logbook.select('tbestort', 'trial'))
 
     pool.close()
+    
+    
+    # %%
+#    #This might all be obsolete!
+#    
+#    # =======================
+#    # Build toolbox for GA on the full original tally file given as input.
+#    # =======================
+#    
+#    # Note this is included for readability/reference.
+#    # Set some GA parameters:
+#    IND_SIZE = G_full.vcount()   # Size of individual in population
+#    POP_SIZE = params_full[0]    # Size of the overall population
+#    NGEN     = params_full[1]    # Number of generations to evolve for
+#    MUT_PB   = params_full[2]    # Probability that an offspring will mutate
+#    CX_PB    = params_full[3]    # Probability that two children will crossover 
+#    MUT_IDPB = params_full[4]    # Independent probability of an attribute mutating
+#    CX_IDPB  = params_full[5]    # Independent probability of an attribute crossover
+#    
+#    # Define objects for/from DEAP's toolbox
+#    # Currently modeled largely off of their one_max example.
+#
+#    toolbox.register("individual_full", tools.initRepeat, creator.Individual,
+#                     toolbox.attr_bool, n=IND_SIZE)
+#    toolbox.register("population_full", tools.initRepeat, list,
+#                     toolbox.individual_full)
+#    toolbox.register("evaluate_full", evaluate, G=G_full,
+#                     Init_pairs=Init_mps_full)
+#
+#    # Above could be done outside of "__main__" ??
+#    # ====================================
+#
+#    # These have to be modified/looped over to modify the
+#    #  INDIVIDUAL crossover or mutation rate of orientations.
+#    toolbox.register("mate", tools.cxUniform, indpb=CX_IDPB)
+#    toolbox.register("mutate", tools.mutFlipBit, indpb=MUT_IDPB)
+#
+#    pops_full = [toolbox.population_full(n=POP_SIZE) for i in range(args.ntrials)]
+#    # ===============================================
+#    # %%
+#    # =======================
+#    # Build toolbox for GA on the community reduced graph..
+#    # =======================
+#    
+#    # Note this is included for readability/reference.
+#    # Set some GA parameters:
+#    IND_SIZE = G_comm.vcount()   # Size of individual in population
+#    POP_SIZE = params_comm[0]    # Size of the overall population
+#    NGEN     = params_comm[1]    # Number of generations to evolve for
+#    MUT_PB   = params_comm[2]    # Probability that an offspring will mutate
+#    CX_PB    = params_comm[3]    # Probability that two children will crossover 
+#    MUT_IDPB = params_comm[4]    # Independent probability of an attribute mutating
+#    CX_IDPB  = params_comm[5]    # Independent probability of an attribute crossover
+#    
+#    # Define objects for/from DEAP's toolbox
+#    # Currently modeled largely off of their one_max example.
+#
+#    toolbox.register("individual_comm", tools.initRepeat, creator.Individual,
+#                     toolbox.attr_bool, n=IND_SIZE)
+#    toolbox.register("population_comm", tools.initRepeat, list,
+#                     toolbox.individual_comm)
+#    toolbox.register("evaluate_comm", evaluate, G=G_comm,
+#                     Init_pairs=Init_mps_comm)
+#
+#    # Above could be done outside of "__main__" ??
+#    # ====================================
+#
+#    # These have to be modified/looped over to modify the
+#    #  INDIVIDUAL crossover or mutation rate of orientations.
+#    toolbox.register("mate", tools.cxUniform, indpb=CX_IDPB)
+#    toolbox.register("mutate", tools.mutFlipBit, indpb=MUT_IDPB)
+#
+#    pops_comm = [toolbox.population_comm(n=POP_SIZE) for i in range(args.ntrials)]
+#    # ===============================================
+#    # %%
+#
+#    # Below copies DEAP's multiprocessing one-max example inside __main__
+#    # Includes a loop over multiple trials.
+#    #
+#    # Tried to use "scoop" for distributed computing (I think that'd be better)
+#    #  but it didn't seem to work right. Would need to determine what actually
+#    #  can be pickled/dill'd or not from DEAP, networkX and igraph.
+#    
+#    pool = multiprocessing.Pool()
+#    toolbox.register("map", pool.map)
+#
+#    # I think these need to be unregistered to get the multiprocessing to work.
+#    toolbox.unregister("attr_bool")
+#    toolbox.unregister("individual_full")
+#    toolbox.unregister("population_full")
+#    toolbox.unregister("individual_comm")
+#    toolbox.unregister("population_comm")
+#
+#    
+#
+#    logbook = tools.Logbook()  # Logbook for all trials.
+#
+#    # Loop here to change crossover or mutation rates (CX_PB and MUT_PB).
+#
+#    # Have to explicitly register an 'evaluate' function to use simple alg.
+#    toolbox.register("evaluate", toolbox.evaluate_comm)
+#    
+#    ea_params=list([pops_comm, toolbox, CX_PB,MUT_PB, NGEN, stats, hof])
+#    
+#    logbook=trial_loop(args, ea_params)
+#    
+#    """
+#    for jj in range(args.ntrials):
+#        pop, tlogbook = algorithms.eaSimple(pops_comm[jj], toolbox, cxpb=CX_PB,
+#                                            mutpb=MUT_PB, ngen=NGEN,
+#                                            stats=stats, halloffame=hof,
+#                                            verbose=False)
+#        logbook.record(trial=jj, tmax=tlogbook.select('max'),
+#                       tbestort=hof[0], tgen=tlogbook.select('gen'),
+#                       tmin=tlogbook.select('min'),
+#                       tstd=tlogbook.select('std'),
+#                       tmean=tlogbook.select('mean'))
+#    """
+#    
+#    # End run trials of GA on full tally
+#    # ====================================
+    
+    # %%
+
+
+
+
     
     
 #    for i in range(args.n):
