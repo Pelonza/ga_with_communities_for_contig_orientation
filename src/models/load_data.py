@@ -46,7 +46,8 @@ def load_data_ig(input_filename):
     # Read in tally file, assuming a 6-column format, no duplicated edges
     G = nx.read_edgelist(input_filename, nodetype=int,
                          data=(('w1', int), ('w2', int), ('w3', int),
-                               ('w4', int)), create_using=OrderedNodeGraph())
+                               ('w4', int)))
+    #, create_using=OrderedNodeGraph())
 
     # Set all edges to 'flipable' -- To be modified later if non-flippable.
     nx.set_node_attributes(G, 'flippable', True)

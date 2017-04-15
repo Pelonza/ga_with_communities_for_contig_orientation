@@ -23,7 +23,7 @@ import numpy as np
 import networkx as nx  # Defines G.edges and G.node
 
 # This may not be needed actually after moving to igraph.
-from collections import OrderedDict  # For modifying networkX graph-dic
+#from collections import OrderedDict  # For modifying networkX graph-dic
 
 
 # Define an fitness-evaluation function.
@@ -32,26 +32,25 @@ def evaluate(individual, G, Init_pairs):
     # a Graph structure (with nodes/edges from tally file). It returns the
     # fitness of the individual.
     Orient_pairs = list(Init_pairs)
-    for (u, v, d) in G.edges(data=True):
-        if individual[G.node[u]['idx']] != individual[G.node[v]['idx']]:
-            Orient_pairs[1] = Orient_pairs[1]-d['w1']+d['w2']
-            Orient_pairs[2] = Orient_pairs[2]-d['w2']+d['w1']
+    for edge in range(G.ecount()):
+        if individual[G.es[edge].tuple[0] != G.es[edge].tuple[1]]:
+            Orient_pairs[1] = Orient_pairs[1]-G.es[edge]['w1'] + G.es[edge]['w2']
+            Orient_pairs[2] = Orient_pairs[2]-G.es[edge]['w2'] + G.es[edge]['w1']
 
     return (Orient_pairs[1]/Orient_pairs[0], )
 
 
 # Needs to be outside the function definition so it can be picklable.
 
-
-class OrderedNodeGraph(nx.Graph):
-    node_dict_factory = OrderedDict
+# class OrderedNodeGraph(nx.Graph):
+#    node_dict_factory = OrderedDict
 
 
 def load_data(input_filename):
     # Read in tally file, assuming a 6-column format, no duplicated edges
     G = nx.read_edgelist(input_filename, nodetype=int,
                          data=(('w1', int), ('w2', int), ('w3', int),
-                               ('w4', int)), create_using=OrderedNodeGraph())
+                               ('w4', int)))
 
     # Set all edges to 'flipable' -- To be modified later if non-flippable.
     nx.set_node_attributes(G, 'flippable', True)
@@ -159,31 +158,55 @@ if __name__ == "__main__":
 
     args = get_parser().parse_args()
     random.seed(1)  # For testing/reproducibility.
-
+    
+    # Located near top to ease changing them. May be overwritten in testing.
+    params_full = list([200, 10, 0.10, 0.20, 0.1, 0.2])
+    params_comm = list([200, 10, 0.10, 0.20, 0.1, 0.2])
     # %%
     # ===========
     # Load data and (if required) determine community structure and remake
     # tally into community-tally.
     G_full, Init_mps_full = load_data(args.ifilename)
     
+    try:
+        assert Init_mps_full[0] != 0
+    except:
+        print("No matepairs in graph")
+
+    # Generate a reduced by community graph.
+    # Cluster membership of a given node can be dereferenced by:
+    # *_clusters.membership[node] thus the orientation of a node from cluster
+    # is: clus_ort[*_clusters.membership[node]] 
+    G_full_dendrogram = G_full.community_fastgreedy(weights="mates")
+    G_full_clusters = G_full_dendrogram.as_clustering()
+    G_comm = G_full_clusters.cluster_graph(combine_edges=sum)
+
+    # Compute basic data about the tally file/input data.
+    Init_mps_comm = list([0, 0, 0])  # (Total, Good, Bad) Total_matepairs=0
+    for edge in range(G_comm.ecount()):
+        Init_mps_comm[0] = Init_mps_comm[0] + G_comm.es[edge]['mates']        
+        Init_mps_comm[1] = Init_mps_comm[1] + G_comm.es[edge]['w1']
+        Init_mps_comm[2] = Init_mps_comm[2] + G_comm.es[edge]['w2']
     
+    try:
+        assert Init_mps_comm[0] != 0
+    except:
+        print("No matepairs (remained) in collapsed graph")
+
     # %%
     # =======================
-    # Run GA on the full original tally file given as input.
+    # Build toolbox for GA on the full original tally file given as input.
     # =======================
-
-    params = list([200, 1000, 0.10, 0.20, 0.1, 0.2])
-
     
     # Note this is included for readability/reference.
     # Set some GA parameters:
-    IND_SIZE = G_full.ecount()  # Size of individual in population
-    POP_SIZE = params[0]    # Size of the overall population
-    NGEN     = params[1]    # Number of generations to evolve for
-    MUT_PB   = params[2]    # Probability that an offspring will mutate
-    CX_PB    = params[3]    # Probability that two children will crossover 
-    MUT_IDPB = params[4]    # Independent probability of an attribute mutating
-    CX_IDPB  = params[5]    # Independent probability of an attribute crossover
+    IND_SIZE = G_full.vcount()   # Size of individual in population
+    POP_SIZE = params_full[0]    # Size of the overall population
+    NGEN     = params_full[1]    # Number of generations to evolve for
+    MUT_PB   = params_full[2]    # Probability that an offspring will mutate
+    CX_PB    = params_full[3]    # Probability that two children will crossover 
+    MUT_IDPB = params_full[4]    # Independent probability of an attribute mutating
+    CX_IDPB  = params_full[5]    # Independent probability of an attribute crossover
     
     # Define objects for/from DEAP's toolbox
     # Currently modeled largely off of their one_max example.
@@ -203,7 +226,44 @@ if __name__ == "__main__":
     toolbox.register("mate", tools.cxUniform, indpb=CX_IDPB)
     toolbox.register("mutate", tools.mutFlipBit, indpb=MUT_IDPB)
 
+    pops_full = [toolbox.population_full(n=POP_SIZE) for i in range(args.ntrials)]
     # ===============================================
+    # %%
+    # =======================
+    # Build toolbox for GA on the community reduced graph..
+    # =======================
+    
+    # Note this is included for readability/reference.
+    # Set some GA parameters:
+    IND_SIZE = G_comm.vcount()   # Size of individual in population
+    POP_SIZE = params_comm[0]    # Size of the overall population
+    NGEN     = params_comm[1]    # Number of generations to evolve for
+    MUT_PB   = params_comm[2]    # Probability that an offspring will mutate
+    CX_PB    = params_comm[3]    # Probability that two children will crossover 
+    MUT_IDPB = params_comm[4]    # Independent probability of an attribute mutating
+    CX_IDPB  = params_comm[5]    # Independent probability of an attribute crossover
+    
+    # Define objects for/from DEAP's toolbox
+    # Currently modeled largely off of their one_max example.
+
+    toolbox.register("individual_comm", tools.initRepeat, creator.Individual,
+                     toolbox.attr_bool, n=IND_SIZE)
+    toolbox.register("population_comm", tools.initRepeat, list,
+                     toolbox.individual_comm)
+    toolbox.register("evaluate_comm", evaluate, G=G_comm,
+                     Init_pairs=Init_mps_comm)
+
+    # Above could be done outside of "__main__" ??
+    # ====================================
+
+    # These have to be modified/looped over to modify the
+    #  INDIVIDUAL crossover or mutation rate of orientations.
+    toolbox.register("mate", tools.cxUniform, indpb=CX_IDPB)
+    toolbox.register("mutate", tools.mutFlipBit, indpb=MUT_IDPB)
+
+    pops_comm = [toolbox.population_comm(n=POP_SIZE) for i in range(args.ntrials)]
+    # ===============================================
+    # %%
 
     # Below copies DEAP's multiprocessing one-max example inside __main__
     # Includes a loop over multiple trials.
@@ -211,15 +271,16 @@ if __name__ == "__main__":
     # Tried to use "scoop" for distributed computing (I think that'd be better)
     #  but it didn't seem to work right. Would need to determine what actually
     #  can be pickled/dill'd or not from DEAP, networkX and igraph.
-
-    pops = [toolbox.population_full(n=POP_SIZE) for i in range(args.ntrials)]
+    
     pool = multiprocessing.Pool()
     toolbox.register("map", pool.map)
 
     # I think these need to be unregistered to get the multiprocessing to work.
     toolbox.unregister("attr_bool")
-    toolbox.unregister("individual")
-    toolbox.unregister("population")
+    toolbox.unregister("individual_full")
+    toolbox.unregister("population_full")
+    toolbox.unregister("individual_comm")
+    toolbox.unregister("population_comm")
 
     hof = tools.HallOfFame(1)
 
@@ -227,8 +288,11 @@ if __name__ == "__main__":
 
     # Loop here to change crossover or mutation rates (CX_PB and MUT_PB).
 
+    # Have to explicitly register an 'evaluate' function to use simple alg.
+    toolbox.register("evaluate", toolbox.evaluate_comm)
+    
     for jj in range(args.ntrials):
-        pop, tlogbook = algorithms.eaSimple(pops[jj], toolbox, cxpb=CX_PB,
+        pop, tlogbook = algorithms.eaSimple(pops_comm[jj], toolbox, cxpb=CX_PB,
                                             mutpb=MUT_PB, ngen=NGEN,
                                             stats=stats, halloffame=hof,
                                             verbose=False)
@@ -245,7 +309,7 @@ if __name__ == "__main__":
 
 
 
-    print(logbook)
+    print(logbook.select('tbestort', 'trial'))
 
     pool.close()
     
