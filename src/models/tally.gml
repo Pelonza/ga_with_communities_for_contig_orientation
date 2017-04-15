@@ -42,97 +42,97 @@ graph [
   edge [
     source 0
     target 1
-    w4 0
     w1 4
-    w3 0
     w2 0
+    w3 0
+    w4 0
   ]
   edge [
     source 0
     target 2
-    w4 0
     w1 0
-    w3 0
     w2 3
+    w3 0
+    w4 0
   ]
   edge [
     source 1
     target 2
-    w4 0
     w1 3
-    w3 0
     w2 0
+    w3 0
+    w4 0
   ]
   edge [
     source 1
     target 3
-    w4 0
     w1 0
-    w3 0
     w2 3
+    w3 0
+    w4 0
   ]
   edge [
     source 1
     target 4
-    w4 0
     w1 1
-    w3 0
     w2 0
+    w3 0
+    w4 0
   ]
   edge [
     source 2
     target 3
-    w4 0
     w1 3
-    w3 0
     w2 0
+    w3 0
+    w4 0
   ]
   edge [
     source 2
     target 5
-    w4 0
     w1 1
-    w3 0
     w2 0
+    w3 0
+    w4 0
   ]
   edge [
     source 4
     target 5
-    w4 0
     w1 4
-    w3 0
     w2 0
+    w3 0
+    w4 0
   ]
   edge [
     source 4
     target 6
-    w4 0
     w1 0
-    w3 0
     w2 3
+    w3 0
+    w4 0
   ]
   edge [
     source 5
     target 7
-    w4 0
     w1 0
-    w3 0
     w2 3
+    w3 0
+    w4 0
   ]
   edge [
     source 5
     target 6
-    w4 0
     w1 3
-    w3 0
     w2 0
+    w3 0
+    w4 0
   ]
   edge [
     source 6
     target 7
-    w4 0
     w1 3
-    w3 0
     w2 0
+    w3 0
+    w4 0
   ]
 ]

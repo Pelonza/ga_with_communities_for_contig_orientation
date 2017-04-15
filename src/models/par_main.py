@@ -22,29 +22,6 @@ import igraph as ig
 import numpy as np
 import networkx as nx  # Defines G.edges and G.node
 
-# This may not be needed actually after moving to igraph.
-#from collections import OrderedDict  # For modifying networkX graph-dic
-
-
-# Define an fitness-evaluation function.
-def evaluate(individual, G, Init_pairs):
-    # Inputs are one individual (with array of flip/no-flip orientations), and
-    # a Graph structure (with nodes/edges from tally file). It returns the
-    # fitness of the individual.
-    Orient_pairs = list(Init_pairs)
-    for edge in range(G.ecount()):
-        if individual[G.es[edge].tuple[0] != G.es[edge].tuple[1]]:
-            Orient_pairs[1] = Orient_pairs[1]-G.es[edge]['w1'] + G.es[edge]['w2']
-            Orient_pairs[2] = Orient_pairs[2]-G.es[edge]['w2'] + G.es[edge]['w1']
-
-    return (Orient_pairs[1]/Orient_pairs[0], )
-
-
-# Needs to be outside the function definition so it can be picklable.
-
-# class OrderedNodeGraph(nx.Graph):
-#    node_dict_factory = OrderedDict
-
 
 def load_data(input_filename):
     # Read in tally file, assuming a 6-column format, no duplicated edges
@@ -145,7 +122,8 @@ stats.register("max", max)
 stats.register("min", min)
 stats.register("std", np.std)
 
-hof = tools.HallOfFame(1)
+hof_local = tools.HallOfFame(1)
+hof_trials = tools.HallOfFame(1)
 
 # Register elements of the toolbox that apply to both full and community GA.
 # This does not necessarily need to be global (I think?)
@@ -154,26 +132,21 @@ toolbox.register("attr_bool", random.randint, 0, 1)
 toolbox.register("select", tools.selTournament, tournsize=3)
 
 # %%
-def trial_loop(args, ea_alg_params):
-    
-    logbook=tools.Logbook()
-    
-    for jj in range(args.ntrials):
-        pop, tlogbook = algorithms.eaSimple(ea_alg_params[0][jj], ea_alg_params[1],
-                                            cxpb=ea_alg_params[2],
-                                            mutpb=ea_alg_params[3],
-                                            ngen=ea_alg_params[4],
-                                            stats=ea_alg_params[5],
-                                            halloffame=ea_alg_params[6],
-                                            verbose=False)
-        logbook.record(trial=jj, tmax=tlogbook.select('max'),
-                       tbestort=hof[0], tgen=tlogbook.select('gen'),
-                       tmin=tlogbook.select('min'),
-                       tstd=tlogbook.select('std'),
-                       tmean=tlogbook.select('mean'))
-    return logbook
+# Define an fitness-evaluation function to be used repeatedly in DEAP's toolbox
+def evaluate(individual, G, Init_pairs):
+    # Inputs are one individual (with array of flip/no-flip orientations), and
+    # a Graph structure (with nodes/edges from tally file). It returns the
+    # fitness of the individual.
+    Orient_pairs = list(Init_pairs)
+    for edge in range(G.ecount()):
+        if individual[G.es[edge].tuple[0] != G.es[edge].tuple[1]]:
+            Orient_pairs[1] = Orient_pairs[1]-G.es[edge]['w1'] + G.es[edge]['w2']
+            Orient_pairs[2] = Orient_pairs[2]-G.es[edge]['w2'] + G.es[edge]['w1']
 
-def Run_GA(args, G, params):
+    return (Orient_pairs[1]/Orient_pairs[0], )
+
+
+def Run_GA(G, params):
     # Sets up and runs the GA using DEAP on the input graph.
     
     # Setup GA
@@ -188,7 +161,6 @@ def Run_GA(args, G, params):
     CX_IDPB  = params[5]    # Independent probability of an attribute crossover
     
     # Define objects for/from DEAP's toolbox
-    # Currently modeled largely off of their one_max example.
     Init_mps = compute_initial_pairs(G)
 
     toolbox.register("individual", tools.initRepeat, creator.Individual,
@@ -197,39 +169,33 @@ def Run_GA(args, G, params):
                      toolbox.individual)
     toolbox.register("evaluate", evaluate, G=G,
                      Init_pairs=Init_mps)
-
-    # Above could be done outside of "__main__" ??
-    # ====================================
-
-    # These have to be modified/looped over to modify the
-    #  INDIVIDUAL crossover or mutation rate of orientations.
     toolbox.register("mate", tools.cxUniform, indpb=CX_IDPB)
     toolbox.register("mutate", tools.mutFlipBit, indpb=MUT_IDPB)
+    
+    hof_local.clear()
+    
+    pop = toolbox.population(n=POP_SIZE)
+    pop, tlogbook = algorithms.eaSimple(pop, toolbox, cxpb=CX_PB, mutpb=MUT_PB,
+                                        ngen=NGEN, stats=stats,
+                                        halloffame=hof_local,
+                                        verbose=False)
+        
+    best_ort = hof_local[0]
+    
+    # Clean-up the toolbox from this call to run a GA
+    toolbox.unregister("individual")
+    toolbox.unregister("population")
+    toolbox.unregister("evaluate")
+    toolbox.unregister("mate")
+    toolbox.unregister("mutate")
+    
+    return pop, best_ort, tlogbook
 
-    local_logbook=tools.Logbook()
-    
-    hof.clear()  # Resets the hall of fame to keep the best from these trials
-    for i in range(args.ntrials):
-        pop = toolbox.population(n=POP_SIZE)
-        pop, tlogbook = algorithms.eaSimple(pop, toolbox,
-                                            cxpb=CX_PB,
-                                            mutpb=MUT_PB,
-                                            ngen=NGEN,
-                                            stats=stats,
-                                            halloffame=hof,
-                                            verbose=False)
-        local_logbook.record(trial=i, tmax=tlogbook.select('max'),
-                       tbestort=hof[0], tgen=tlogbook.select('gen'),
-                       tmin=tlogbook.select('min'),
-                       tstd=tlogbook.select('std'),
-                       tmean=tlogbook.select('mean'))
-
-    best_ort = hof[0]
-   
-    
-    
-    
-    return G, best_ort, local_logbook
+def merge_ort(orient1, orient2, outort):
+    for i in range(len(orient1)):
+        outort[i]=orient1[i]^orient2[i]
+        
+    return
 # %%
 if __name__ == "__main__":
     """
@@ -256,6 +222,14 @@ if __name__ == "__main__":
     # tally into community-tally.
     G_full, Init_mps_full = load_data(args.ifilename)
     
+    toolbox.register("orient", tools.initRepeat, creator.Individual,
+                 int, n=G_full.vcount())
+    
+    base_orient=toolbox.orient()
+    tmp_orient= toolbox.orient()
+    
+
+
     try:
         assert Init_mps_full[0] != 0
     except:
@@ -278,9 +252,31 @@ if __name__ == "__main__":
         print("No matepairs (remained) in collapsed graph")
 
     # %%
-    myG, best_ort, logbook = Run_GA(args, G_comm, params_full)
     
-    print(logbook.select('tbestort', 'trial'))
+    logbook=tools.Logbook()
+    full_logbook=tools.Logbook()  # Logbook for running just the base GA
+    # Loop here
+    for i in range(args.ntrials):
+        
+        # ----------------
+        # This chunk runs a GA then records it as a trial.
+        pop, tbestort, tlogbook = Run_GA(G_full, params_full)
+        full_logbook.record(trial=i, tmax=tlogbook.select('max'),
+                            tbort=tbestort, tgen=tlogbook.select('gen'),
+                            tmin=tlogbook.select('min'),
+                            tstd=tlogbook.select('std'),
+                            tmean=tlogbook.select('mean'))
+        hof_trials.update(pop)
+        
+        print(tbestort, base_orient, tmp_orient)
+        merge_ort(tbestort, base_orient, tmp_orient)
+        print(tbestort, base_orient, tmp_orient)
+        #----------------
+        
+
+    
+    
+    print(full_logbook.select('tbort', 'trial'))
 
     pool.close()
     
