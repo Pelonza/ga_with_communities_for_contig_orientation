@@ -151,6 +151,11 @@ def Run_GA(G, params):
     
     # Define objects for/from DEAP's toolbox
     Init_mps = compute_initial_pairs(G)
+    
+    try:
+        assert Init_mps[0] != 0
+    except:
+        print("No matepairs in graph for Run_GA")
 
     toolbox.register("individual", tools.initRepeat, creator.Individual,
                      toolbox.attr_bool, n=IND_SIZE)
@@ -234,6 +239,7 @@ if __name__ == "__main__":
     # Located near top to ease changing them. May be overwritten in testing.
     params_full = list([200, 10, 0.10, 0.20, 0.1, 0.2])
     params_comm = list([200, 10, 0.10, 0.20, 0.1, 0.2])
+    
     # %%
     # ===========
     # Load data and (if required) determine community structure and remake
@@ -260,14 +266,7 @@ if __name__ == "__main__":
     G_full_clusters = G_full_dendrogram.as_clustering()
     G_comm = G_full_clusters.cluster_graph(combine_edges=sum)
 
-    # Compute basic data about the tally file/input data.
-    Init_mps_comm = compute_initial_pairs(G_comm) 
     
-    try:
-        assert Init_mps_comm[0] != 0
-    except:
-        print("No matepairs (remained) in collapsed graph")
-
     # %%
     
     logbook=tools.Logbook()
@@ -277,7 +276,7 @@ if __name__ == "__main__":
         
         # ----------------
         # This chunk runs a GA then records it as a trial.
-        pop, tbestort, tlogbook = Run_GA(G_full, params_full)
+        pop, tbestort, tlogbook = Run_GA(G_comm, params_full)
         full_logbook.record(trial=i, tmax=tlogbook.select('max'),
                             tbort=tbestort, tgen=tlogbook.select('gen'),
                             tmin=tlogbook.select('min'),
@@ -287,6 +286,11 @@ if __name__ == "__main__":
 
         #----------------
     
+
+    # Unwrapping a cluster's orientation into a full orientation.
+    for v in range(G_full.vcount()):
+        cls_orient[v] = tbestort[G_full_clusters.membership[v]]
+        
     print(full_logbook.select('tbort', 'trial'))
 
     pool.close()
