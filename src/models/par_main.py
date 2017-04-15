@@ -203,10 +203,17 @@ def compute_initial_pairs(G):
 def update_graph(G, orient):
     for edge in range(G.ecount()):
         if orient[G.es[edge].tuple[0]] != orient[G.es[edge].tuple[1]]:
-            Orient_pairs[1] = Orient_pairs[1]-G.es[edge]['w1'] + G.es[edge]['w2']
-            Orient_pairs[2] = Orient_pairs[2]-G.es[edge]['w2'] + G.es[edge]['w1']
-        
-        
+            #Swap 'w1' and 'w2' (also 'w3' and 'w4' to reduce fixing later)
+            tmp = G.es[edge]['w1']
+            G.es[edge]['w1'] = G.es[edge]['w2']
+            G.es[edge]['w2'] = tmp
+            tmp = G.es[edge]['w3']
+            G.es[edge]['w3'] = G.es[edge]['w4']
+            G.es[edge]['w4'] = tmp
+    
+    return
+
+
 # %%
 if __name__ == "__main__":
     """
@@ -236,10 +243,9 @@ if __name__ == "__main__":
     toolbox.register("orient", tools.initRepeat, creator.Individual,
                  int, n=G_full.vcount())
     
-    base_orient=toolbox.orient()
-    tmp_orient= toolbox.orient()
-    
-
+    base_orient = toolbox.orient()  # For storing the original orientation(s)
+    tmp_orient = toolbox.orient()   # For use in merging/swapping orientations.
+    cls_orient = toolbox.orient()   # To unwrap clustered orientation into.
 
     try:
         assert Init_mps_full[0] != 0
@@ -280,9 +286,6 @@ if __name__ == "__main__":
         hof_trials.update(pop)
 
         #----------------
-        
-
-    
     
     print(full_logbook.select('tbort', 'trial'))
 
