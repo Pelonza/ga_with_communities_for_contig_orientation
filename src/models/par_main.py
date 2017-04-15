@@ -48,17 +48,6 @@ def load_data(input_filename):
         
     return ig_G, Initial_matepairs
 
-def compute_initial_pairs(G):
-    # Compute basic data about the tally file/input data.
-    # Uses an igraph -style graph.
-    # Assumes edges in G have "mates", "w1" and "w2" properties
-    Initial_matepairs = list([0, 0, 0])  # (Total, Good, Bad) Total_matepairs=0
-    for edge in range(G.ecount()):
-        Initial_matepairs[0] = Initial_matepairs[0] + G.es[edge]['mates']        
-        Initial_matepairs[1] = Initial_matepairs[1] + G.es[edge]['w1']
-        Initial_matepairs[2] = Initial_matepairs[2] + G.es[edge]['w2']
-    
-    return Initial_matepairs
 
 def is_valid_file(parser, arg):
     """
@@ -139,7 +128,7 @@ def evaluate(individual, G, Init_pairs):
     # fitness of the individual.
     Orient_pairs = list(Init_pairs)
     for edge in range(G.ecount()):
-        if individual[G.es[edge].tuple[0] != G.es[edge].tuple[1]]:
+        if individual[G.es[edge].tuple[0]] != individual[G.es[edge].tuple[1]]:
             Orient_pairs[1] = Orient_pairs[1]-G.es[edge]['w1'] + G.es[edge]['w2']
             Orient_pairs[2] = Orient_pairs[2]-G.es[edge]['w2'] + G.es[edge]['w1']
 
@@ -191,11 +180,33 @@ def Run_GA(G, params):
     
     return pop, best_ort, tlogbook
 
+
 def merge_ort(orient1, orient2, outort):
     for i in range(len(orient1)):
-        outort[i]=orient1[i]^orient2[i]
-        
+        outort[i]=orient1[i]^orient2[i]        
     return
+
+
+def compute_initial_pairs(G):
+    # Compute basic data about the tally file/input data.
+    # Uses an igraph -style graph.
+    # Assumes edges in G have "mates", "w1" and "w2" properties
+    Initial_matepairs = list([0, 0, 0])  # (Total, Good, Bad) Total_matepairs=0
+    for edge in range(G.ecount()):
+        Initial_matepairs[0] = Initial_matepairs[0] + G.es[edge]['mates']        
+        Initial_matepairs[1] = Initial_matepairs[1] + G.es[edge]['w1']
+        Initial_matepairs[2] = Initial_matepairs[2] + G.es[edge]['w2']
+    
+    return Initial_matepairs
+
+
+def update_graph(G, orient):
+    for edge in range(G.ecount()):
+        if orient[G.es[edge].tuple[0]] != orient[G.es[edge].tuple[1]]:
+            Orient_pairs[1] = Orient_pairs[1]-G.es[edge]['w1'] + G.es[edge]['w2']
+            Orient_pairs[2] = Orient_pairs[2]-G.es[edge]['w2'] + G.es[edge]['w1']
+        
+        
 # %%
 if __name__ == "__main__":
     """
@@ -267,10 +278,7 @@ if __name__ == "__main__":
                             tstd=tlogbook.select('std'),
                             tmean=tlogbook.select('mean'))
         hof_trials.update(pop)
-        
-        print(tbestort, base_orient, tmp_orient)
-        merge_ort(tbestort, base_orient, tmp_orient)
-        print(tbestort, base_orient, tmp_orient)
+
         #----------------
         
 
