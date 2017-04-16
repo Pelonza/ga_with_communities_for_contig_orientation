@@ -89,7 +89,7 @@ def get_parser():
                         metavar="FILE")
     parser.add_argument("-n",
                         dest="ntrials",
-                        default=2,
+                        default=50,
                         type=int,
                         help="how many trials to do per parameter set")
     parser.add_argument("-q", "--quiet",
@@ -240,6 +240,14 @@ if __name__ == "__main__":
     params_full = list([200, 10, 0.10, 0.20, 0.1, 0.2])
     params_comm = list([200, 10, 0.10, 0.20, 0.1, 0.2])
     
+    #Replicated from Run_GA for reference.
+    #POP_SIZE = params[0]    # Size of the overall population
+    #NGEN     = params[1]    # Number of generations to evolve for
+    #MUT_PB   = params[2]    # Probability that an offspring will mutate
+    #CX_PB    = params[3]    # Probability that two children will crossover 
+    #MUT_IDPB = params[4]    # Independent probability of an attribute mutating
+    #CX_IDPB  = params[5]    # Independent probability of an attribute crossover
+    
     # %%
     # ===========
     # Load data and (if required) determine community structure and remake
@@ -271,34 +279,47 @@ if __name__ == "__main__":
     
     logbook=tools.Logbook()
     full_logbook=tools.Logbook()  # Logbook for running just the base GA
-    # Loop here
-    for i in range(args.ntrials):
+    
+    #Parameter Sweep
+    #Base Parameters:
+    param = list([100, 5000, 0.1, 0.1, 0.05, 0.1])
+    
+    for mut_pb in range(0,100,5):
+        #Set sweep parameter really by 0.025
+        param[2] = mut_pb/100
         
-        # ----------------
-        # This chunk runs a GA then records it as a trial.
-        pop, tbestort, tlogbook = Run_GA(G_comm, params_full)
-        full_logbook.record(trial=i, tmax=tlogbook.select('max'),
-                            tbort=tbestort, tgen=tlogbook.select('gen'),
-                            tmin=tlogbook.select('min'),
-                            tstd=tlogbook.select('std'),
-                            tmean=tlogbook.select('mean'))
-        hof_trials.update(pop)
-
-        #----------------
+        param_logbook=tools.Logbook() #Create a logbook to hold the trials.
+        # Loop here   
+        for i in range(args.ntrials):
+            
+            # ----------------
+            # This chunk runs a GA then records it as a trial.
+            pop, tbestort, tlogbook = Run_GA(G_full, param)
+            param_logbook.record(trial=i, tmax=tlogbook.select('max'),
+                                tbort=tbestort, tgen=tlogbook.select('gen'),
+                                tmin=tlogbook.select('min'),
+                                tstd=tlogbook.select('std'),
+                                tmean=tlogbook.select('mean'))
+            hof_trials.update(pop)
+    
+            #----------------
+        
+        print("Finished trials of parameter: ", param[2])
+        full_logbook.record(param='mut_pb', value = param[2], trial_data=param_logbook)
     
 
     # Unwrapping a cluster's orientation into a full orientation.
-    for v in range(G_full.vcount()):
-        cls_orient[v] = tbestort[G_full_clusters.membership[v]]
+    #for v in range(G_full.vcount()):
+    #    cls_orient[v] = tbestort[G_full_clusters.membership[v]]
         
-    print(full_logbook.select('tbort', 'trial'))
+    #print(full_logbook.select('tbort', 'trial'))
 
     pool.close()
            
 ##    with open(args.oorient, 'w+') as f:
 ##        json.dump(myhof[0], f)
-#    with open(args.output_stats, 'w') as f:
-#        json.dump(logbook,f)
+    with open(args.output_stats, 'w') as f:
+        json.dump(full_logbook,f)
 
 
 
@@ -306,7 +327,8 @@ if __name__ == "__main__":
 # Mouse line:
     #-i ..\\..\\data\\raw\\mouse_tallies -o ..\\..\\data\\interim\\mouse.orient -s ..\\..\\data\\interim\\mouse.stat
     
-        
+# Test cluster lines:
+# -i ..\\..\\data\\test\\basic2_cluster2.tally -s ..\\..\\data\\interim\\cluster.tally        
         
         
         
