@@ -22,7 +22,37 @@ import igraph as ig
 import numpy as np
 import networkx as nx  # Defines G.edges and G.node
 
+from scoop import futures #imports the scoop distributed computing package.
 
+
+# %%
+# These have to be global for multiprocessing and scoop (?).
+creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+creator.create("Individual", list, fitness=creator.FitnessMax)
+
+# Register all the data we want to track, in a global box for multiprocessing
+stats = tools.Statistics(lambda ind: ind.fitness.values)
+stats.register("mean", np.mean)
+stats.register("max", max)
+stats.register("min", min)
+stats.register("std", np.std)
+
+hof_local = tools.HallOfFame(1)
+hof_trials = tools.HallOfFame(1)
+
+# Register elements of the toolbox that apply to both full and community GA.
+# This does not necessarily need to be global (I think?)
+toolbox = base.Toolbox()
+toolbox.register("attr_bool", random.randint, 0, 1)
+toolbox.register("select", tools.selTournament, tournsize=3)
+
+# Making a global i-graphs to hold data for all workers to reduce overhead
+# Only using one to preserve reusuability of trials function.
+#global G_global
+#G_global = ig.Graph()
+
+
+# %%
 def load_data(input_filename):
     # Read in tally file, assuming a 6-column format, no duplicated edges
     G = nx.read_edgelist(input_filename, nodetype=int,
@@ -99,26 +129,6 @@ def get_parser():
                         help="don't print status messages to stdout")
     return parser
 
-# %%
-# These have to be global for multiprocessing.
-creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-creator.create("Individual", list, fitness=creator.FitnessMax)
-
-# Register all the data we want to track, in a global box for multiprocessing
-stats = tools.Statistics(lambda ind: ind.fitness.values)
-stats.register("mean", np.mean)
-stats.register("max", max)
-stats.register("min", min)
-stats.register("std", np.std)
-
-hof_local = tools.HallOfFame(1)
-hof_trials = tools.HallOfFame(1)
-
-# Register elements of the toolbox that apply to both full and community GA.
-# This does not necessarily need to be global (I think?)
-toolbox = base.Toolbox()
-toolbox.register("attr_bool", random.randint, 0, 1)
-toolbox.register("select", tools.selTournament, tournsize=3)
 
 # %%
 # Define an fitness-evaluation function to be used repeatedly in DEAP's toolbox
@@ -219,6 +229,27 @@ def update_graph(G, orient):
     return
 
 
+def trials(allparam):
+    # Attempt to move trial loop to a function for scoop mapping.
+    
+    param_logbook=tools.Logbook() #Create a logbook to hold the trials.
+    # Loop here
+    for i in range(allparam[0]):
+        
+        # ----------------
+        # This chunk runs a GA then records it as a trial.
+        pop, tbestort, tlogbook = Run_GA(allparam[1], allparam[2])
+        param_logbook.record(trial=i, tmax=tlogbook.select('max'),
+                            tbort=tbestort, tgen=tlogbook.select('gen'),
+                            tmin=tlogbook.select('min'),
+                            tstd=tlogbook.select('std'),
+                            tmean=tlogbook.select('mean'),
+                            tparam=allparam[2])
+        hof_trials.update(pop)
+    
+    return param_logbook
+
+
 # %%
 if __name__ == "__main__":
     """
@@ -229,12 +260,14 @@ if __name__ == "__main__":
         *_full  -- Variables related to the full, original tally file.
         *_comm  -- Variables related to the reduce, community based data
     """
+    
+    #global G_global  # Allow G_global to be modified in this script.
 
     args = get_parser().parse_args()
     random.seed(1)  # For testing/reproducibility.
     
-    pool = multiprocessing.Pool()
-    toolbox.register("map", pool.map)
+    #pool = multiprocessing.Pool()
+    #toolbox.register("map", pool.map)
     
     # Located near top to ease changing them. May be overwritten in testing.
     params_full = list([200, 10, 0.10, 0.20, 0.1, 0.2])
@@ -282,31 +315,41 @@ if __name__ == "__main__":
     
     #Parameter Sweep
     #Base Parameters:
-    param = list([100, 5000, 0.1, 0.1, 0.05, 0.1])
+    param = list([100, 2, 0.1, 0.1, 0.05, 0.1])
     
-    for mut_pb in range(0,100,5):
+    # Set which graph we are testing on.
+    G_global = G_full
+    
+    # Pre-declare mapdata as a list of lists.
+    mapdata = list(list())
+    for mut_pb in range(0,20,5):
         #Set sweep parameter really by 0.025
         param[2] = mut_pb/100
         
-        param_logbook=tools.Logbook() #Create a logbook to hold the trials.
-        # Loop here   
-        for i in range(args.ntrials):
-            
-            # ----------------
-            # This chunk runs a GA then records it as a trial.
-            pop, tbestort, tlogbook = Run_GA(G_full, param)
-            param_logbook.record(trial=i, tmax=tlogbook.select('max'),
-                                tbort=tbestort, tgen=tlogbook.select('gen'),
-                                tmin=tlogbook.select('min'),
-                                tstd=tlogbook.select('std'),
-                                tmean=tlogbook.select('mean'))
-            hof_trials.update(pop)
+        #mapdata.append(list([args.ntrials, G_full, param]))
+        mapdata.append(list([2, G_full, param]))
+        
+    full_logbook=list(futures.map(trials, mapdata))
+#        param_logbook=tools.Logbook() #Create a logbook to hold the trials.
+#        # Loop here   
+#        for i in range(args.ntrials):
+#            
+#            # ----------------
+#            # This chunk runs a GA then records it as a trial.
+#            pop, tbestort, tlogbook = Run_GA(G_full, param)
+#            param_logbook.record(trial=i, tmax=tlogbook.select('max'),
+#                                tbort=tbestort, tgen=tlogbook.select('gen'),
+#                                tmin=tlogbook.select('min'),
+#                                tstd=tlogbook.select('std'),
+#                                tmean=tlogbook.select('mean'))
+#            hof_trials.update(pop)
     
             #----------------
         
-        print("Finished trials of parameter: ", param[2])
-        full_logbook.record(param='mut_pb', value = param[2], trial_data=param_logbook)
+    print("Finished trials of parameter") #: ", param[2])
+    #full_logbook.record(param='mut_pb', value = param[2], trial_data=param_logbook)
     
+    print(full_logbook)
 
     # Unwrapping a cluster's orientation into a full orientation.
     #for v in range(G_full.vcount()):
@@ -314,7 +357,7 @@ if __name__ == "__main__":
         
     #print(full_logbook.select('tbort', 'trial'))
 
-    pool.close()
+    #pool.close()
            
 ##    with open(args.oorient, 'w+') as f:
 ##        json.dump(myhof[0], f)
