@@ -16,7 +16,8 @@ import os
 import multiprocessing
 
 import json
-import dill as pickle
+#import dill as pickle
+import pickle
 import igraph as ig
 
 import numpy as np
@@ -315,54 +316,34 @@ if __name__ == "__main__":
     
     #Parameter Sweep
     #Base Parameters:
-    param = list([100, 2, 0.1, 0.1, 0.05, 0.1])
+    param = list([50, 2000, 0.1, 0.1, 0.05, 0.1])
     
     # Set which graph we are testing on.
     G_global = G_full
     
+    # ============
+    # When using "update_graph" MUST MAKE COPY OF GRAPH FOR EACH DISTRIBUTED
+    # COMPUT NODE! -- Python auto-passes by REFERENCE, so otherwise solutions
+    # will get all super jumbled up!
+    # ============
+    
+    
     # Pre-declare mapdata as a list of lists.
     mapdata = list(list())
-    for mut_pb in range(0,20,5):
-        #Set sweep parameter really by 0.025
+    for mut_pb in range(0,100,5):
+        #Set sweep parameter really by 0.05
         param[2] = mut_pb/100
-        
-        #mapdata.append(list([args.ntrials, G_full, param]))
-        mapdata.append(list([2, G_full, param]))
+
+        mapdata.append(list([50, G_full, list(param)]))
         
     full_logbook=list(futures.map(trials, mapdata))
-#        param_logbook=tools.Logbook() #Create a logbook to hold the trials.
-#        # Loop here   
-#        for i in range(args.ntrials):
-#            
-#            # ----------------
-#            # This chunk runs a GA then records it as a trial.
-#            pop, tbestort, tlogbook = Run_GA(G_full, param)
-#            param_logbook.record(trial=i, tmax=tlogbook.select('max'),
-#                                tbort=tbestort, tgen=tlogbook.select('gen'),
-#                                tmin=tlogbook.select('min'),
-#                                tstd=tlogbook.select('std'),
-#                                tmean=tlogbook.select('mean'))
-#            hof_trials.update(pop)
-    
-            #----------------
+
         
     print("Finished trials of parameter") #: ", param[2])
-    #full_logbook.record(param='mut_pb', value = param[2], trial_data=param_logbook)
-    
-    print(full_logbook)
-
-    # Unwrapping a cluster's orientation into a full orientation.
-    #for v in range(G_full.vcount()):
-    #    cls_orient[v] = tbestort[G_full_clusters.membership[v]]
         
-    #print(full_logbook.select('tbort', 'trial'))
-
-    #pool.close()
-           
-##    with open(args.oorient, 'w+') as f:
-##        json.dump(myhof[0], f)
     with open(args.output_stats, 'w') as f:
         json.dump(full_logbook,f)
+
 
 
 
