@@ -9,16 +9,19 @@ graph data-structure and initial scores.
 """
 
 import networkx as nx
+import igraph as ig
 
 ## NetworkX Initializations and data reading.
 
 #Have networkX use an ordereddict to track the nodes, to guarantee a consistent
 # mapping of orientations from individuals to contigs.
 
+from collections import OrderedDict
+class OrderedNodeGraph(nx.Graph):
+    node_dict_factory=OrderedDict
+
 def load_data(input_filename):
-    from collections import OrderedDict
-    class OrderedNodeGraph(nx.Graph):
-        node_dict_factory=OrderedDict
+
     
     #Read in tally file, assuming a 6-column format, no duplicated edges
     G=nx.read_edgelist(input_filename,nodetype=int, data=(('w1',int),('w2',int),('w3',int),('w4',int)), create_using=OrderedNodeGraph())
@@ -38,6 +41,36 @@ def load_data(input_filename):
         Initial_matepairs[2]=Initial_matepairs[2]+d['w2']
     
     return G, Initial_matepairs
+
+def load_data_ig(input_filename):
+    # Read in tally file, assuming a 6-column format, no duplicated edges
+    G = nx.read_edgelist(input_filename, nodetype=int,
+                         data=(('w1', int), ('w2', int), ('w3', int),
+                               ('w4', int)))
+    #, create_using=OrderedNodeGraph())
+
+    # Set all edges to 'flipable' -- To be modified later if non-flippable.
+    nx.set_node_attributes(G, 'flippable', True)
+    
+    # Write to GML then load as an igraph graph for faster computations on
+    # other elementals.
+    nx.write_gml(G, "tally.gml")
+    ig_G = ig.Graph()
+    ig_G = ig_G.Read_GML("tally.gml")
+
+    # Compute basic data about the tally file/input data.
+    Initial_matepairs = list([0, 0, 0])  # (Total, Good, Bad) Total_matepairs=0
+    for edge in range(ig_G.ecount()):
+        # Define an additional edge attribute of total pairs
+        ig_G.es[edge]['mates'] = ig_G.es[edge]['w1'] + ig_G.es[edge]['w2'] 
+        # If col3/4 included    # + ig_G.es[edge]['w3'] + ig_G.es[edge]['w4'])
+
+        Initial_matepairs[0] = Initial_matepairs[0] + ig_G.es[edge]['mates']        
+        Initial_matepairs[1] = Initial_matepairs[1] + ig_G.es[edge]['w1']
+        Initial_matepairs[2] = Initial_matepairs[2] + ig_G.es[edge]['w2']
+        
+    return ig_G, Initial_matepairs
+
 
 def fix_orient(input_filename):
     """
@@ -103,7 +136,21 @@ if __name__=='__main__':
     assert Init[1]==24
     assert Init[2]==8
     
-    print("Tested load_data function successfully")
+    print("Tested load_data with networkX function successfully")
+    
+    ig_G, Init = load_data_ig('basic.tally')
+    
+    assert ig_G.vcount()==5
+    assert ig_G.ecount()==6
+    assert Init[0]==32
+    assert Init[1]==24
+    assert Init[2]==8    
+    
+    print("Tested load_data with igraph function successfully")
+    
+    #Produce some gml files for testing in ipython window.
+    ig_G, Init = load_data_ig('basic2_cluster.tally')
+    ig_G, Init = load_data_ig('basic2_cluster2.tally')
     
     
     
