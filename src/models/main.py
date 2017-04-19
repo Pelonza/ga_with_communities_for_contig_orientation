@@ -4,7 +4,10 @@ Created on Fri Apr 14 08:50:14 2017
 
 @author:Karl R. B. Schmitt
 
+DO NOT USE THIS RIGHT NOW! -- This has not been updated/tested during development of distributed computing.
 
+It _should_ work, but par_main uses more updated functions for loading the data and logging output.
+par_main also uses 'igraph' as end representation format for graphs.
 """
 
 
@@ -12,7 +15,6 @@ Created on Fri Apr 14 08:50:14 2017
 #import load_data as ld #Contains the load_data function.
 import os
 import json
-#from pathos.multiprocessing import ProcessingPool as Pool
 import networkx as nx
 import numpy as np
 import random
@@ -22,13 +24,11 @@ from deap import creator
 from deap import tools
 from deap import algorithms
 
-from scoop import futures
-
 from collections import OrderedDict
 class OrderedNodeGraph(nx.Graph):
     node_dict_factory=OrderedDict
 
-def load_data(input_filename):    
+def load_data(input_filename):    #Old uses networkX only.
     #Read in tally file, assuming a 6-column format, no duplicated edges
     G=nx.read_edgelist(input_filename,nodetype=int, data=(('w1',int),('w2',int),('w3',int),('w4',int)), create_using=OrderedNodeGraph())
     
@@ -38,7 +38,7 @@ def load_data(input_filename):
     for n in nx.nodes_iter(G):
         G.node[n]['idx']=i
         i=i+1
-    
+        
     #Compute basic data about the tally file/input data.
     Initial_matepairs=list([0,0,0]) #(Total, Good, Bad) Total_matepairs=0
     for (u,v,d) in G.edges(data=True):
@@ -61,7 +61,8 @@ def evaluate(individual, G, Init_pairs):
     
     return (Orient_pairs[1]/Orient_pairs[0], )
 
-#def trial(args, pool):
+"""
+def trial(args, params=list([100,2,0.10,0.20,0.1,0.2])):
 #    
 #    G, Init_mps = load_data(args.ifilename)
 #    
@@ -71,7 +72,25 @@ def evaluate(individual, G, Init_pairs):
 #        json.dump(myhof[0], f)
 #    with open(args.output_stats, 'w+') as f:
 #        json.dump(mylog,f)
+#    logbook=tools.Logbook()
+    
+    for i in range(args.n):
+        trialpop, trialstats, trialhof, triallog = ga_func.gaopt_Uni(G, Init_mps, params)
         
+        #print(triallog)
+        
+        #This un-packs the logbook generated from the optimization performed 
+        # above, by keeping each track of information connected to a trial.
+        logbook.record(trial=i, best=trialhof[0], genmin=triallog.select("min"), 
+                       genmax=triallog.select("max"), genstd=triallog.select("std"), 
+                       genavg=triallog.select("mean"), gengen=triallog.select("gen"))
+        
+#    with open(args.oorient, 'w+') as f:
+#        json.dump(myhof[0], f)
+    with open(args.output_stats, 'w') as f:
+        json.dump(logbook,f)
+"""   
+
 def is_valid_file(parser, arg):
     """
     Check if arg is a valid file that already exists on the file system.
@@ -112,7 +131,7 @@ def get_parser():
                         metavar="FILE")    
     parser.add_argument("-n",
                         dest="n",
-                        default=10,
+                        default=2,
                         type=int,
                         help="how many lines get printed")
     parser.add_argument("-q", "--quiet",
@@ -125,13 +144,11 @@ def get_parser():
 
 if __name__ == "__main__":
     """
-    Main that calls a single trial with currently default parameters.
+    Main that calls a single parameter trial, with multiple runs (args=n)
+    with currently default parameters.
     """
     
-    args = get_parser().parse_args()
-    
-    #pool = Pool(15)
-    
+    args = get_parser().parse_args()    
     G, Init_mps = load_data(args.ifilename)
     
     params=list([100,100,0.10,0.20,0.1,0.2])
@@ -161,9 +178,6 @@ if __name__ == "__main__":
     toolbox.register("mutate", tools.mutFlipBit, indpb=MUT_IDPB)
     toolbox.register("select", tools.selTournament, tournsize=3)
     
-    #toolbox.register("map", pool.map)
-    toolbox.register("map", futures.map)
-    
     hof= tools.HallOfFame(1)
     
     stats= tools.Statistics(lambda ind: ind.fitness.values)
@@ -185,6 +199,8 @@ if __name__ == "__main__":
         json.dump(logbook,f)
     
     #trial(args, pool)
+    #trial(args)
+
 
 
     
