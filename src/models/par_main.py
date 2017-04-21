@@ -319,7 +319,7 @@ if __name__ == "__main__":
     #Parameter Sweep
     #Base Parameters:
     #param = list([50, 2000, 0.1, 0.1, 0.05, 0.1])
-    param = list([50, 1000, 0.1, 0.1, 0.05])
+    param = list([50, 2000, 0.1, 0.1, 0.05])
     
     # Set which graph we are testing on.
     G_global = G_full
@@ -333,11 +333,11 @@ if __name__ == "__main__":
     
     # Pre-declare mapdata as a list of lists.
     mapdata = list(list())
-    for mut_pb in range(0,10,5):
+    for mut_pb in range(0,100,5):
         #Set sweep parameter really by 0.05
         param[2] = mut_pb/100
 
-        mapdata.append(list([4, G_full, list(param)]))
+        mapdata.append(list([50, G_full, list(param)]))
         
     full_logbook=list(futures.map(trials, mapdata))
 
