@@ -158,7 +158,7 @@ def Run_GA(G, params):
     MUT_PB   = params[2]    # Probability that an offspring will mutate
     CX_PB    = params[3]    # Probability that two children will crossover 
     MUT_IDPB = params[4]    # Independent probability of an attribute mutating
-    CX_IDPB  = params[5]    # Independent probability of an attribute crossover
+    #CX_IDPB  = params[5]    # Independent probability of an attribute crossover
     
     # Define objects for/from DEAP's toolbox
     Init_mps = compute_initial_pairs(G)
@@ -174,7 +174,8 @@ def Run_GA(G, params):
                      toolbox.individual)
     toolbox.register("evaluate", evaluate, G=G,
                      Init_pairs=Init_mps)
-    toolbox.register("mate", tools.cxUniform, indpb=CX_IDPB)
+    #toolbox.register("mate", tools.cxUniform, indpb=CX_IDPB)
+    toolbox.register("mate", tools.cxOnePoint)
     toolbox.register("mutate", tools.mutFlipBit, indpb=MUT_IDPB)
     
     hof_local.clear()
@@ -271,8 +272,9 @@ if __name__ == "__main__":
     #toolbox.register("map", pool.map)
     
     # Located near top to ease changing them. May be overwritten in testing.
-    params_full = list([200, 10, 0.10, 0.20, 0.1, 0.2])
-    params_comm = list([200, 10, 0.10, 0.20, 0.1, 0.2])
+    #params_full = list([200, 10, 0.10, 0.20, 0.1, 0.2])
+    params_full = list([200, 10, 0.10, 0.20, 0.1]) # Not Uniform CX
+    #params_comm = list([200, 10, 0.10, 0.20, 0.1, 0.2])
     
     #Replicated from Run_GA for reference.
     #POP_SIZE = params[0]    # Size of the overall population
@@ -316,7 +318,8 @@ if __name__ == "__main__":
     
     #Parameter Sweep
     #Base Parameters:
-    param = list([50, 2000, 0.1, 0.1, 0.05, 0.1])
+    #param = list([50, 2000, 0.1, 0.1, 0.05, 0.1])
+    param = list([50, 2000, 0.1, 0.1, 0.05])
     
     # Set which graph we are testing on.
     G_global = G_full
