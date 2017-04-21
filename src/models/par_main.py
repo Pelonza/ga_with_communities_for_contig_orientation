@@ -333,9 +333,9 @@ if __name__ == "__main__":
     
     # Pre-declare mapdata as a list of lists.
     mapdata = list(list())
-    for mut_pb in range(0,100,5):
+    for mutIpb in range(0,100,10):
         #Set sweep parameter really by 0.05
-        param[2] = mut_pb/100
+        param[4] = mutIpb/100
 
         mapdata.append(list([50, G_full, list(param)]))
         
