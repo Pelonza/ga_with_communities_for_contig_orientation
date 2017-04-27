@@ -322,7 +322,7 @@ if __name__ == "__main__":
     param = list([50, 2000, 0.1, 0.1, 0.05])
     
     # Set which graph we are testing on.
-    G_global = G_full
+    G_global = G_comm
     
     # ============
     # When using "update_graph" MUST MAKE COPY OF GRAPH FOR EACH DISTRIBUTED
@@ -333,12 +333,12 @@ if __name__ == "__main__":
     
     # Pre-declare mapdata as a list of lists.
     mapdata = list(list())
-    for mutpb in range(70,100,10):
+    for cxpb in range(0,100,5):
         #Set sweep parameter really by 0.05
-        param[2] = mutpb/100
+        param[3] = cxpb/100
 
-        mapdata.append(list([25, G_full, list(param)]))
-        mapdata.append(list([25, G_full, list(param)]))
+        mapdata.append(list([50, G_comm, list(param)]))
+        #mapdata.append(list([25, G_full, list(param)]))
         
     full_logbook=list(futures.map(trials, mapdata))
 
