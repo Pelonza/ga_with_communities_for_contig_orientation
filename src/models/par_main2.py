@@ -333,11 +333,11 @@ if __name__ == "__main__":
     
     # Pre-declare mapdata as a list of lists.
     mapdata = list(list())
-    for mutpb in range(5,40,5):
+    for mutpb in range(15,35,5):
         #Set sweep parameter really by 0.05
         param[2] = mutpb/100
         
-        for cxpb in range(10,30,10)
+        for cxpb in range(20,30,10)
             mapdata.append(list([50, G_full, list(param)]))
         
     full_logbook=list(futures.map(trials, mapdata))
