@@ -82,12 +82,16 @@ if __name__ == "__main__":
     M_cx = json.load(f)
     f.close()
     
-    f = open('../../data/interim/mouse_cx_comm.stat','r')
-    M_cx_comm = json.load(f)
+    f = open('../../data/interim/mouse_mut.stat','r')
+    M_mut = json.load(f)
     f.close()
     
-    f = open('../../data/interim/mouse_mutpb.stat','r')
-    M_mut = json.load(f)
+    #f = open('../../data/interim/mouse_cx_comm.stat','r')
+    #M_cx_comm = json.load(f)
+    #f.close()
+    
+    f = open('../../data/interim/mouse_mut_comm.stat','r')
+    M_mut_comm = json.load(f)
     f.close()
     
     f = open('../../data/interim/mouse_mutidpb.stat','r')
@@ -100,8 +104,12 @@ if __name__ == "__main__":
     
     
     output_file("test.html")
-    cxfig=figure()
-    cx_comfig=figure()
+    cxfig=figure(title="Crossover Parameter Sweep")
+    cx_comfig=figure(title="Crossover Parameter Sweep on Communities")
+    
+    mut_comfig=figure(title="Mutation Parameter Sweep on Communities")
+    mut_fig=figure(title="Mutation Parameter Sweep")
+    
     for j in range(2,19):
         df = [M_cx[j][k]['tmax'] for k in range(50)]
         avg_tmax = (np.mean(df, axis=0)).tolist()
@@ -109,20 +117,39 @@ if __name__ == "__main__":
                    str(M_cx[j][0]['tparam'][3]),
                    line_color= d3['Category20'][20][j], muted_alpha=0.2, alpha=1)
         
-        dfc = [M_cx_comm[j][k]['tmax'] for k in range(50)]
-        avg_tmaxc = (np.mean(dfc, axis=0)).tolist()
-        cx_comfig.line(M_cx_comm[0][0]['tgen'], avg_tmaxc, 
-                       legend="Crossover = "+str(M_cx[j][0]['tparam'][3]),
+#        dfc = [M_cx_comm[j][k]['tmax'] for k in range(50)]
+#        avg_tmaxc = (np.mean(dfc, axis=0)).tolist()
+#        cx_comfig.line(M_cx_comm[0][0]['tgen'], avg_tmaxc, 
+#                       legend="Crossover = "+str(M_cx_comm[j][0]['tparam'][3]),
+#                       line_color=d3['Category20'][20][j], muted_alpha=0.2, alpha=1)
+        
+        df2 = [M_mut[j][k]['tmax'] for k in range(50)]
+        avg_tmax2 = (np.mean(df2, axis=0)).tolist()
+        mut_fig.line(M_mut[0][0]['tgen'], avg_tmax2, legend="Mutation = "+
+                   str(M_mut[j][0]['tparam'][2]),
+                   line_color= d3['Category20'][20][j], muted_alpha=0.2, alpha=1)        
+        
+        dfc2 = [M_mut_comm[j][k]['tmax'] for k in range(50)]
+        avg_tmaxc2 = (np.mean(dfc2, axis=0)).tolist()
+        mut_comfig.line(M_mut_comm[0][0]['tgen'], avg_tmaxc2, 
+                       legend="Mutation = "+str(M_mut_comm[j][0]['tparam'][2]),
                        line_color=d3['Category20'][20][j], muted_alpha=0.2, alpha=1)
     
     cxfig.legend.location = "bottom_right"
     cxfig.legend.click_policy = "hide"
     
-    cx_comfig.legend.location = "bottom_right"
-    cx_comfig.legend.click_policy = "hide"
+#    cx_comfig.legend.location = "bottom_right"
+#    cx_comfig.legend.click_policy = "hide"
+#    
+    mut_comfig.legend.location = "bottom_right"
+    mut_comfig.legend.click_policy = "hide"
     
-    mutidfig = figure()
-    mutid_comfig = figure()
+    mut_fig.legend.location = "bottom_right"
+    mut_fig.legend.click_policy = "hide"
+    
+    
+    mutidfig = figure(title="Independent Mutation Parameter Sweep")
+    mutid_comfig = figure(title="Independent Mutation Parameter Sweep on Communities")
     
     for j in range(10):
         df = [M_mutid[j][k]['tmax'] for k in range(50)]
@@ -133,7 +160,7 @@ if __name__ == "__main__":
         df2 = [M_mutid_comm[j][k]['tmax'] for k in range(50)]
         
         avg_tmax2 = (np.mean(df2, axis=0)).tolist()
-        mutid_comfig.line(M_mutid_comm[0][0]['tgen'], avg_tmax, 
+        mutid_comfig.line(M_mutid_comm[0][0]['tgen'], avg_tmax2, 
                       legend="Ind. Mut. = "+str(M_mutid_comm[j][0]['tparam'][4]),
                       line_color=d3['Category10'][10][j], alpha=1)
         
@@ -143,7 +170,8 @@ if __name__ == "__main__":
     mutid_comfig.legend.location = "bottom_right"
     mutid_comfig.legend.click_policy = "hide"
     
-    show(column(cxfig,cx_comfig, mutidfig, mutid_comfig) )  
+#    show(column(cxfig,cx_comfig, mut_fig, mut_comfig, mutidfig, mutid_comfig) )  
+    show(column(cxfig, mut_fig, mut_comfig, mutidfig, mutid_comfig) )  
 
     
     
