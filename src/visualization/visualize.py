@@ -191,5 +191,26 @@ if __name__ == "__main__":
     mutid_comm_extr.legend.location = "bottom_right"
     mutid_comm_extr.legend.click_policy = "hide"    
     
-    show(gridplot([[cxfig, cx_comfig], [mut_fig, mut_comfig], [mutidfig, mutid_comfig], [None, mutid_comm_extr]]) )  
+    # Plot the two-stage version, GA then Comm
+    f = open('../../data/interim/mouse_twostage_test.stat')
+    twostage = json.load(f)
+    f.close()
+    
+    gagrp_fig = figure(title = "GA with GA-Comm")
+    df_2stage = [ twostage[k][0]['tmax'] for k in range(2)]
+    df_2stage_grp = [twostage[k][1]['tmax'] for k in range(2)]
+    avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
+    avg_tmax_2stg_grp = (np.mean(df_2stage_grp, axis=0).tolist())
+    xdata = twostage[0][0]['tgen']
+    xdata_grp = [ (twostage[0][1]['tgen'][k]+len(xdata)) for k in range(len(twostage[0][1]['tgen'])) ]
+    #xdata = xdata + tmpx
+    gagrp_fig.line(xdata, avg_tmax_2stg,
+                   legend = 
+                   "GA - Mut. = "+str(twostage[0][0]['tparam'][2])+
+                   " , Cx = "+str(twostage[0][0]['tparam'][3])+"\n"+
+                   "GA-Comm - Mut. = "+str(twostage[0][1]['tparam'][2])+
+                   " , Cx = "+str(twostage[0][1]['tparam'][3])
+                   )
+    
+    show(gridplot([[cxfig, cx_comfig], [mut_fig, mut_comfig], [mutidfig, mutid_comfig], [None, mutid_comm_extr], [None, gagrp_fig]]) )  
 #    show(column(cxfig, mut_fig, mut_comfig, mutidfig, mutid_comfig) )  

@@ -270,8 +270,8 @@ def one_series_trial_GA_CM(allparam):
     update_graph(myG, tbestort)
     
     full_best_ort = deepcopy(tbestort)  # Preserve best orientation for merging later.
-    tmp_ort = deepcopy(tbestort) # This will be overwritten by unmapping community orientation
-    final_ort = deepcopy(tbestort)  # This will hold the final merged orientation.
+    #tmp_ort = deepcopy(tbestort) # This will be overwritten by unmapping community orientation
+    #final_ort = deepcopy(tbestort)  # This will hold the final merged orientation.
 
     # Generate a reduced by community graph.
     # Cluster membership of a given node can be dereferenced by:
@@ -292,13 +292,18 @@ def one_series_trial_GA_CM(allparam):
     hof_trials.update(pop)
     
     # Unmap community orientation
-    for i in range(len(tmp_ort)):
-        tmp_ort[i] = tbestort[G_full_clusters.membership[i]]
+    final_ort=[None]*len(full_best_ort)
+    for i in range(len(full_best_ort)):
+        final_ort[i] = tbestort[G_full_clusters.membership[i]]^full_best_ort[i]
     
-    merge_ort(full_best_ort, tmp_ort, final_ort)
+    # Merge the unmapped orientation.... except. not.
+#    final_ort=[None]*len(full_best_ort)
+#    for i in range(len(full_best_ort)):
+#        final_ort[i]=full_best_ort[i]^tmp_ort[i]  
     
+    param_logbook.record(merged_ort = final_ort)
     
-    return param_logbook, merge_ort
+    return param_logbook
     
     
     
@@ -384,11 +389,11 @@ if __name__ == "__main__":
     # --------
     # Pre-declare mapdata as a list of lists
     mapdata = list(list())
-    for optfull in range(5):
+    for optfull in range(2):
         mapdata.append(list([1, G_full.copy(), list(params_full), list(params_comm)]))
         
         
-    full_logbook1 = list(futures.map(trials, mapdata))
+    full_logbook = list(futures.map(one_series_trial_GA_CM, mapdata))
 
 
         
@@ -397,7 +402,7 @@ if __name__ == "__main__":
     with open(args.output_stats, 'w') as f:
         json.dump(full_logbook,f)
 
-
+    exit()
 
 
 
