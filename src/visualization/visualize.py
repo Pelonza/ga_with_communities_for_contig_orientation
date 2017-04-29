@@ -86,9 +86,9 @@ if __name__ == "__main__":
     M_mut = json.load(f)
     f.close()
     
-    #f = open('../../data/interim/mouse_cx_comm.stat','r')
-    #M_cx_comm = json.load(f)
-    #f.close()
+    f = open('../../data/interim/mouse_cx_comm_B.stat','r')
+    M_cx_comm = json.load(f)
+    f.close()
     
     f = open('../../data/interim/mouse_mut_comm.stat','r')
     M_mut_comm = json.load(f)
@@ -110,6 +110,10 @@ if __name__ == "__main__":
     mut_comfig=figure(title="Mutation Parameter Sweep on Communities")
     mut_fig=figure(title="Mutation Parameter Sweep")
     
+    mutidfig = figure(title="Independent Mutation Parameter Sweep")
+    mutid_comfig = figure(title="Independent Mutation Parameter Sweep on Communities")
+
+    #  Loops over the 20-value parameter sweeps (cx/mut for full/comm)
     for j in range(2,19):
         df = [M_cx[j][k]['tmax'] for k in range(50)]
         avg_tmax = (np.mean(df, axis=0)).tolist()
@@ -117,11 +121,11 @@ if __name__ == "__main__":
                    str(M_cx[j][0]['tparam'][3]),
                    line_color= d3['Category20'][20][j], muted_alpha=0.2, alpha=1)
         
-#        dfc = [M_cx_comm[j][k]['tmax'] for k in range(50)]
-#        avg_tmaxc = (np.mean(dfc, axis=0)).tolist()
-#        cx_comfig.line(M_cx_comm[0][0]['tgen'], avg_tmaxc, 
-#                       legend="Crossover = "+str(M_cx_comm[j][0]['tparam'][3]),
-#                       line_color=d3['Category20'][20][j], muted_alpha=0.2, alpha=1)
+        dfc = [M_cx_comm[j][k]['tmax'] for k in range(50)]
+        avg_tmaxc = (np.mean(dfc, axis=0)).tolist()
+        cx_comfig.line(M_cx_comm[0][0]['tgen'], avg_tmaxc, 
+                       legend="Crossover = "+str(M_cx_comm[j][0]['tparam'][3]),
+                       line_color=d3['Category20'][20][j], muted_alpha=0.2, alpha=1)
         
         df2 = [M_mut[j][k]['tmax'] for k in range(50)]
         avg_tmax2 = (np.mean(df2, axis=0)).tolist()
@@ -133,57 +137,59 @@ if __name__ == "__main__":
         avg_tmaxc2 = (np.mean(dfc2, axis=0)).tolist()
         mut_comfig.line(M_mut_comm[0][0]['tgen'], avg_tmaxc2, 
                        legend="Mutation = "+str(M_mut_comm[j][0]['tparam'][2]),
-                       line_color=d3['Category20'][20][j], muted_alpha=0.2, alpha=1)
-    
-    cxfig.legend.location = "bottom_right"
-    cxfig.legend.click_policy = "hide"
-    
-#    cx_comfig.legend.location = "bottom_right"
-#    cx_comfig.legend.click_policy = "hide"
-#    
-    mut_comfig.legend.location = "bottom_right"
-    mut_comfig.legend.click_policy = "hide"
-    
-    mut_fig.legend.location = "bottom_right"
-    mut_fig.legend.click_policy = "hide"
-    
-    
-    mutidfig = figure(title="Independent Mutation Parameter Sweep")
-    mutid_comfig = figure(title="Independent Mutation Parameter Sweep on Communities")
-    
+                       line_color=d3['Category20'][20][j], muted_alpha=0.2, alpha=1)    
+
+    #  Loops over the 10-value parameter sweeps (independent mutation rates)        
     for j in range(10):
         df = [M_mutid[j][k]['tmax'] for k in range(50)]
         avg_tmax = (np.mean(df, axis=0)).tolist()
         mutidfig.line(M_mutid[0][0]['tgen'], avg_tmax, 
                       legend="Ind. Mut. = "+str(M_mutid[j][0]['tparam'][4]),
-                      line_color=d3['Category10'][10][j], alpha=1)
+                      line_color=d3['Category20'][15][j], alpha=1)
         df2 = [M_mutid_comm[j][k]['tmax'] for k in range(50)]
         
         avg_tmax2 = (np.mean(df2, axis=0)).tolist()
         mutid_comfig.line(M_mutid_comm[0][0]['tgen'], avg_tmax2, 
                       legend="Ind. Mut. = "+str(M_mutid_comm[j][0]['tparam'][4]),
-                      line_color=d3['Category10'][10][j], alpha=1)
+                      line_color=d3['Category20'][15][j], alpha=1)
+    
+    #Open additional mutid comm plots and add them.
+    f = open('../../data/interim/mouse_mutidpb_2d5_15_by_2d5_comm.stat','r')
+    More_mutidcomm = json.load(f)
+    f.close()
+    
+    mutid_comm_extr = figure()
+    for j in range(0,12,2):
+        df_extraC = [More_mutidcomm[j][k]['tmax'] for k in range(25)]
+        df_extraC.append([More_mutidcomm[j+1][k]['tmax'] for k in range(25)])
+        avg_tmax_extraC = (np.mean(df_extraC, axis=0)).tolist()
+        mutid_comm_extr.line(More_mutidcomm[0][0]['tgen'], avg_tmax_extraC,
+                          legend = "Ind. Mut. = "+str(More_mutidcomm[j][0]['tparam'][4]),
+                          line_color=d3['Category20'][6][j], alpha = 1)
         
     
+
+    #  Move all the legends and set the interactions to hide unwanted lines.    
+    cxfig.legend.location = "bottom_right"
+    cxfig.legend.click_policy = "hide"
+    
+    cx_comfig.legend.location = "bottom_right"
+    cx_comfig.legend.click_policy = "hide"
+    
+    mut_comfig.legend.location = "bottom_right"
+    mut_comfig.legend.click_policy = "hide"
+    
+    mut_fig.legend.location = "bottom_right"
+    mut_fig.legend.click_policy = "hide"    
+
     mutidfig.legend.location = "bottom_right"
     mutidfig.legend.click_policy = "hide"
+
     mutid_comfig.legend.location = "bottom_right"
     mutid_comfig.legend.click_policy = "hide"
-    
-#    show(column(cxfig,cx_comfig, mut_fig, mut_comfig, mutidfig, mutid_comfig) )  
-    show(column(cxfig, mut_fig, mut_comfig, mutidfig, mutid_comfig) )  
 
+    mutid_comm_extr.legend.location = "bottom_right"
+    mutid_comm_extr.legend.click_policy = "hide"    
     
-    
-    """
-    Process:
-        
-        load logbook
-        df = [ logbook[9][k]['tmax'] for k in range(50)] #Generate sub-data frame
-        avg_tmax=np.mean(df, axis=0)  # Average Data
-        avg_tmax_lst=avg_tmax.tolist()  #  Un-array the averages
-        plot! : p.line(logbook[x][0]['tgen'], avg_tmax_lst)
-        
-        
-        average tmax: avg_max=numpy.mean()
-    """
+    show(column(row(cxfig,cx_comfig), row(mut_fig, mut_comfig), row(mutidfig, mutid_comfig)), mutid_comm_extr )  
+#    show(column(cxfig, mut_fig, mut_comfig, mutidfig, mutid_comfig) )  
