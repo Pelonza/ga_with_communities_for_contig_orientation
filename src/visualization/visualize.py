@@ -207,10 +207,13 @@ if __name__ == "__main__":
     gagrp_fig.line(xdata, avg_tmax_2stg,
                    legend = 
                    "GA - Mut. = "+str(twostage[0][0]['tparam'][2])+
-                   " , Cx = "+str(twostage[0][0]['tparam'][3])+"\n"+
+                   " , Cx = "+str(twostage[0][0]['tparam'][3]),
+                   line_color = d3['Category20'][3][0])
+    gagrp_fig.line(xdata_grp, avg_tmax_2stg_grp,
+                   legend =
                    "GA-Comm - Mut. = "+str(twostage[0][1]['tparam'][2])+
-                   " , Cx = "+str(twostage[0][1]['tparam'][3])
-                   )
+                   " , Cx = "+str(twostage[0][1]['tparam'][3]),
+                   line_color = d3['Category20'][3][2])
     
     show(gridplot([[cxfig, cx_comfig], [mut_fig, mut_comfig], [mutidfig, mutid_comfig], [None, mutid_comm_extr], [None, gagrp_fig]]) )  
 #    show(column(cxfig, mut_fig, mut_comfig, mutidfig, mutid_comfig) )  

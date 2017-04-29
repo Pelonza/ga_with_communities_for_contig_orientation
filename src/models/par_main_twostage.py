@@ -216,6 +216,31 @@ def compute_initial_pairs(G):
     
     return Initial_matepairs
 
+def node_centric(G):
+    node_net=[None]*G.vcount()
+    node_good = [None]*G.vcount()
+    node_bad = [None]*G.vcount()
+    
+    for edge in G.es:
+        # Source
+        node_good[edge.source] += G.es[edge]['w1']
+        node_bad[edge.source] += G.es[edge]['w2']
+        
+        # Target
+        node_good[edge.target] += G.es[edge]['w1']
+        node_bad[edge.target] += G.es[edge]['w2']
+    
+    for i in range(G.vcount()):
+        node_net[i] = node_good[i] - node_bad[i]
+
+    node_ort = [False]*G.vcount()
+    
+    sort_ord=np.argsort(node_net)
+    while (np.amin(node_net) < 0) :
+        for i in G.vs[sort_ord[end]].neighbors():
+            G.get_eid ( sort_ord[end], i) # gets the edge ID... so we can modify good/bad/net for resorting.
+    return
+        
 
 def update_graph(G, orient):
     for edge in range(G.ecount()):
@@ -265,6 +290,8 @@ def one_series_trial_GA_CM(allparam):
                             tmean=tlogbook.select('mean'),
                             tparam=allparam[2])
     hof_trials.update(pop)
+
+    print("Finished base GA")
     
     # Reorient base graph using best orientation.
     update_graph(myG, tbestort)
@@ -279,7 +306,7 @@ def one_series_trial_GA_CM(allparam):
     # is: clus_ort[*_clusters.membership[node]] 
     G_full_dendrogram = myG.community_fastgreedy(weights="mates")
     G_full_clusters = G_full_dendrogram.as_clustering()
-    myG_comm = G_full_clusters.cluster_graph(combine_edges=sum)
+    myG_comm = G_full_clusters.cluster_graph(combine_edges=sum)        
     
     pop, tbestort, tlogbook = Run_GA(myG_comm, allparam[3])
 
@@ -303,6 +330,7 @@ def one_series_trial_GA_CM(allparam):
     
     param_logbook.record(merged_ort = final_ort)
     
+    print("Finished trial")
     return param_logbook
     
     
@@ -328,8 +356,8 @@ if __name__ == "__main__":
     
     # Located near top to ease changing them. May be overwritten in testing.
     #params_full = list([200, 10, 0.10, 0.20, 0.1, 0.2])
-    params_full = list([50, 1000, 0.30, 0.90, 0.05]) # Not Uniform CX
-    params_comm = list([50, 1000, 0.30, 0.70, 0.025])
+    params_full = list([50, 1500, 0.30, 0.90, 0.05]) # Not Uniform CX
+    params_comm = list([50, 1500, 0.30, 0.70, 0.025])
     
     #Replicated from Run_GA for reference.
     #POP_SIZE = params[0]    # Size of the overall population
@@ -389,7 +417,7 @@ if __name__ == "__main__":
     # --------
     # Pre-declare mapdata as a list of lists
     mapdata = list(list())
-    for optfull in range(2):
+    for optfull in range(50):
         mapdata.append(list([1, G_full.copy(), list(params_full), list(params_comm)]))
         
         
