@@ -13,7 +13,7 @@ Dependencies:
 
 import bokeh as bk
 from bokeh.plotting import figure, output_file, show
-from bokeh.layouts import row, column
+from bokeh.layouts import row, column, gridplot
 import bokeh.palettes as pal
 from bokeh.palettes import d3
 from deap import tools
@@ -158,14 +158,14 @@ if __name__ == "__main__":
     More_mutidcomm = json.load(f)
     f.close()
     
-    mutid_comm_extr = figure()
+    mutid_comm_extr = figure(title="Finer Sweep of Independent Mutation on Communities")
     for j in range(0,12,2):
         df_extraC = [More_mutidcomm[j][k]['tmax'] for k in range(25)]
-        df_extraC.append([More_mutidcomm[j+1][k]['tmax'] for k in range(25)])
+        df_extraC = df_extraC + [More_mutidcomm[j+1][k]['tmax'] for k in range(25)]
         avg_tmax_extraC = (np.mean(df_extraC, axis=0)).tolist()
         mutid_comm_extr.line(More_mutidcomm[0][0]['tgen'], avg_tmax_extraC,
                           legend = "Ind. Mut. = "+str(More_mutidcomm[j][0]['tparam'][4]),
-                          line_color=d3['Category20'][6][j], alpha = 1)
+                          line_color=d3['Category20'][12][j], alpha = 1)
         
     
 
@@ -191,5 +191,5 @@ if __name__ == "__main__":
     mutid_comm_extr.legend.location = "bottom_right"
     mutid_comm_extr.legend.click_policy = "hide"    
     
-    show(column(row(cxfig,cx_comfig), row(mut_fig, mut_comfig), row(mutidfig, mutid_comfig)), mutid_comm_extr )  
+    show(gridplot([[cxfig, cx_comfig], [mut_fig, mut_comfig], [mutidfig, mutid_comfig], [None, mutid_comm_extr]]) )  
 #    show(column(cxfig, mut_fig, mut_comfig, mutidfig, mutid_comfig) )  
