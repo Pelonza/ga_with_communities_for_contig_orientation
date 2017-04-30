@@ -235,11 +235,24 @@ def node_centric(G):
 
     node_ort = [False]*G.vcount()
     
-    sort_ord=np.argsort(node_net)
-    while (np.amin(node_net) < 0) :
-        for i in G.vs[sort_ord[end]].neighbors():
-            G.get_eid ( sort_ord[end], i) # gets the edge ID... so we can modify good/bad/net for resorting.
-    return
+    # Find the max -> min ordering of the node-happiness
+    sort_ord = np.argsort(node_net)
+    while (node_net[sort_ord[-1]] < 0) :  #  Keep looping till all statified or ort
+    # Note: To help this loop condition, nodes with flipped ort will be inf
+    
+        # Set ort to 'true' (flipped) and unhappy value to 'inf'
+        node_net[sort_ord[-1]] = np.inf
+        node_ort[sort_ord[-1]] = True
+        
+        # Loop through neighbors and update their good-bad values.
+        for i in G.vs[sort_ord[-1]].neighbors():
+            edge = G.get_eid(sort_ord[-1], i)
+            node_net[i] = node_net[i] + G.es[edge]['w2'] - G.es[edge]['w1']
+            
+        sort_ord = np.argsort(node_net)
+
+
+    return node_ort
         
 
 def update_graph(G, orient):
