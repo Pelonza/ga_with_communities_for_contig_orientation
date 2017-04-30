@@ -153,12 +153,18 @@ if __name__ == "__main__":
                       legend="Ind. Mut. = "+str(M_mutid_comm[j][0]['tparam'][4]),
                       line_color=d3['Category20'][15][j], alpha=1)
     
-    #Open additional mutid comm plots and add them.
+    #Open additional mutid plots and add them.
     f = open('../../data/interim/mouse_mutidpb_2d5_15_by_2d5_comm.stat','r')
     More_mutidcomm = json.load(f)
     f.close()
     
+    f = open('../../data/interim/mouse_mutidpb_2d5_15_by_2d5.stat','r')
+    More_mutid = json.load(f)
+    f.close()
+
+
     mutid_comm_extr = figure(title="Finer Sweep of Independent Mutation on Communities")
+    mutid_extr = figure(title="Finer Sweep of Independent Mutation")
     for j in range(0,12,2):
         df_extraC = [More_mutidcomm[j][k]['tmax'] for k in range(25)]
         df_extraC = df_extraC + [More_mutidcomm[j+1][k]['tmax'] for k in range(25)]
@@ -167,6 +173,12 @@ if __name__ == "__main__":
                           legend = "Ind. Mut. = "+str(More_mutidcomm[j][0]['tparam'][4]),
                           line_color=d3['Category20'][12][j], alpha = 1)
         
+        df_extra = [More_mutid[j][k]['tmax'] for k in range(25)]
+        df_extra = df_extra + [More_mutid[j+1][k]['tmax'] for k in range(25)]
+        avg_tmax_extra = (np.mean(df_extra, axis=0)).tolist()
+        mutid_extr.line(More_mutid[0][0]['tgen'], avg_tmax_extra,
+                          legend = "Ind. Mut. = "+str(More_mutid[j][0]['tparam'][4]),
+                          line_color=d3['Category20'][12][j], alpha = 1)
     
 
     #  Move all the legends and set the interactions to hide unwanted lines.    
@@ -215,5 +227,5 @@ if __name__ == "__main__":
                    " , Cx = "+str(twostage[0][1]['tparam'][3]),
                    line_color = d3['Category20'][3][2])
     
-    show(gridplot([[cxfig, cx_comfig], [mut_fig, mut_comfig], [mutidfig, mutid_comfig], [None, mutid_comm_extr], [None, gagrp_fig]]) )  
+    show(gridplot([[cxfig, cx_comfig], [mut_fig, mut_comfig], [mutidfig, mutid_comfig], [mutid_extr, mutid_comm_extr], [None, gagrp_fig]]) )  
 #    show(column(cxfig, mut_fig, mut_comfig, mutidfig, mutid_comfig) )  
