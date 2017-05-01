@@ -345,7 +345,75 @@ def one_series_trial_GA_CM(allparam):
     
     print("Finished trial")
     return param_logbook
+
+def one_series_trial_CM_GA(allparam):
+    # One trial with GA then Group GA for scoop mapping
+    myG = allparam[1]  # Just for easier referencing -- myG should be a node local copy of the graph.
+    param_logbook=tools.Logbook()
+ 
+    #  Run optimization on community-grouped graph.
+    G_full_dendrogram = myG.community_fastgreedy(weights="mates")
+    G_full_clusters = G_full_dendrogram.as_clustering()
+    myG_comm = G_full_clusters.cluster_graph(combine_edges=sum)        
     
+    pop, tbestort, tlogbook = Run_GA(myG_comm, allparam[3])
+
+    param_logbook.record(trial='GA-Comm', tmax=tlogbook.select('max'),
+                            tbort=tbestort, tgen=tlogbook.select('gen'),
+                            tmin=tlogbook.select('min'),
+                            tstd=tlogbook.select('std'),
+                            tmean=tlogbook.select('mean'),
+                            tparam=allparam[3])
+    hof_trials.update(pop)
+    
+    print("Finished CM")
+    
+    #  Get individual contig orientations from group orientations to set graph
+    unmap_ort = [None]*myG.vcount()
+    for i in range(unmap_ort):
+        unmap_ort = tbestort[G_full_clusters.membership[i]]
+    
+    update_graph(myG, unmap_ort)
+    
+    
+    #  Run optimization on full graph
+    pop, tbestort, tlogbook = Run_GA(myG, allparam[2])
+
+    param_logbook.record(trial='GA-Full', tmax=tlogbook.select('max'),
+                            tbort=tbestort, tgen=tlogbook.select('gen'),
+                            tmin=tlogbook.select('min'),
+                            tstd=tlogbook.select('std'),
+                            tmean=tlogbook.select('mean'),
+                            tparam=allparam[2])
+    hof_trials.update(pop)
+
+    print("Finished GA")
+    
+    
+    full_best_ort = deepcopy(tbestort)  # Preserve best orientation for merging later.
+    #tmp_ort = deepcopy(tbestort) # This will be overwritten by unmapping community orientation
+    #final_ort = deepcopy(tbestort)  # This will hold the final merged orientation.
+
+    # Generate a reduced by community graph.
+    # Cluster membership of a given node can be dereferenced by:
+    # *_clusters.membership[node] thus the orientation of a node from cluster
+    # is: clus_ort[*_clusters.membership[node]] 
+
+    
+    # Unmap community orientation
+    final_ort=[None]*len(full_best_ort)
+    for i in range(len(full_best_ort)):
+        final_ort[i] = unmap_ort[i]^full_best_ort[i]
+    
+    # Merge the unmapped orientation.... except. not.
+#    final_ort=[None]*len(full_best_ort)
+#    for i in range(len(full_best_ort)):
+#        final_ort[i]=full_best_ort[i]^tmp_ort[i]  
+    
+    param_logbook.record(merged_ort = final_ort)
+    
+    
+    return param_logbook    
     
     
 # %%
@@ -434,7 +502,7 @@ if __name__ == "__main__":
         mapdata.append(list([1, G_full.copy(), list(params_full), list(params_comm)]))
         
         
-    full_logbook = list(futures.map(one_series_trial_GA_CM, mapdata))
+    full_logbook = list(futures.map(one_series_trial_CM_GA, mapdata))
 
 
         

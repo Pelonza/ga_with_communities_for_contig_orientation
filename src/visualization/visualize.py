@@ -153,32 +153,32 @@ if __name__ == "__main__":
                       legend="Ind. Mut. = "+str(M_mutid_comm[j][0]['tparam'][4]),
                       line_color=d3['Category20'][15][j], alpha=1)
     
-    #Open additional mutid plots and add them.
-    f = open('../../data/interim/mouse_mutidpb_2d5_15_by_2d5_comm.stat','r')
-    More_mutidcomm = json.load(f)
-    f.close()
-    
-    f = open('../../data/interim/mouse_mutidpb_2d5_15_by_2d5.stat','r')
-    More_mutid = json.load(f)
-    f.close()
-
-
-    mutid_comm_extr = figure(title="Finer Sweep of Independent Mutation on Communities")
-    mutid_extr = figure(title="Finer Sweep of Independent Mutation")
-    for j in range(0,12,2):
-        df_extraC = [More_mutidcomm[j][k]['tmax'] for k in range(25)]
-        df_extraC = df_extraC + [More_mutidcomm[j+1][k]['tmax'] for k in range(25)]
-        avg_tmax_extraC = (np.mean(df_extraC, axis=0)).tolist()
-        mutid_comm_extr.line(More_mutidcomm[0][0]['tgen'], avg_tmax_extraC,
-                          legend = "Ind. Mut. = "+str(More_mutidcomm[j][0]['tparam'][4]),
-                          line_color=d3['Category20'][12][j], alpha = 1)
-        
-        df_extra = [More_mutid[j][k]['tmax'] for k in range(25)]
-        df_extra = df_extra + [More_mutid[j+1][k]['tmax'] for k in range(25)]
-        avg_tmax_extra = (np.mean(df_extra, axis=0)).tolist()
-        mutid_extr.line(More_mutid[0][0]['tgen'], avg_tmax_extra,
-                          legend = "Ind. Mut. = "+str(More_mutid[j][0]['tparam'][4]),
-                          line_color=d3['Category20'][12][j], alpha = 1)
+#    #Open additional mutid plots and add them.
+#    f = open('../../data/interim/mouse_mutidpb_2d5_15_by_2d5_comm.stat','r')
+#    More_mutidcomm = json.load(f)
+#    f.close()
+#    
+#    f = open('../../data/interim/mouse_mutidpb_2d5_15_by_2d5.stat','r')
+#    More_mutid = json.load(f)
+#    f.close()
+#
+#
+#    mutid_comm_extr = figure(title="Finer Sweep of Independent Mutation on Communities")
+#    mutid_extr = figure(title="Finer Sweep of Independent Mutation")
+#    for j in range(0,12,2):
+#        df_extraC = [More_mutidcomm[j][k]['tmax'] for k in range(25)]
+#        df_extraC = df_extraC + [More_mutidcomm[j+1][k]['tmax'] for k in range(25)]
+#        avg_tmax_extraC = (np.mean(df_extraC, axis=0)).tolist()
+#        mutid_comm_extr.line(More_mutidcomm[0][0]['tgen'], avg_tmax_extraC,
+#                          legend = "Ind. Mut. = "+str(More_mutidcomm[j][0]['tparam'][4]),
+#                          line_color=d3['Category20'][12][j], alpha = 1)
+#        
+#        df_extra = [More_mutid[j][k]['tmax'] for k in range(25)]
+#        df_extra = df_extra + [More_mutid[j+1][k]['tmax'] for k in range(25)]
+#        avg_tmax_extra = (np.mean(df_extra, axis=0)).tolist()
+#        mutid_extr.line(More_mutid[0][0]['tgen'], avg_tmax_extra,
+#                          legend = "Ind. Mut. = "+str(More_mutid[j][0]['tparam'][4]),
+#                          line_color=d3['Category20'][12][j], alpha = 1)
     
 
     #  Move all the legends and set the interactions to hide unwanted lines.    
@@ -200,34 +200,33 @@ if __name__ == "__main__":
     mutid_comfig.legend.location = "bottom_right"
     mutid_comfig.legend.click_policy = "hide"
 
-    mutid_comm_extr.legend.location = "bottom_right"
-    mutid_comm_extr.legend.click_policy = "hide"    
-    
-    # Plot the two-stage version, GA then Comm
-    f = open('../../data/interim/mouse_twostage_test.stat')
-    twostage = json.load(f)
-    f.close()
-    
-    gagrp_fig = figure(title = "GA with GA-Comm")
-    df_2stage = [ twostage[k][0]['tmax'] for k in range(2)]
-    df_2stage_grp = [twostage[k][1]['tmax'] for k in range(2)]
-    avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
-    avg_tmax_2stg_grp = (np.mean(df_2stage_grp, axis=0).tolist())
-    xdata = twostage[0][0]['tgen']
-    xdata_grp = [ (twostage[0][1]['tgen'][k]+len(xdata)) for k in range(len(twostage[0][1]['tgen'])) ]
-    #xdata = xdata + tmpx
-    gagrp_fig.line(xdata, avg_tmax_2stg,
-                   legend = 
-                   "GA - Mut. = "+str(twostage[0][0]['tparam'][2])+
-                   " , Cx = "+str(twostage[0][0]['tparam'][3]),
-                   line_color = d3['Category20'][3][0])
-    gagrp_fig.line(xdata_grp, avg_tmax_2stg_grp,
-                   legend =
-                   "GA-Comm - Mut. = "+str(twostage[0][1]['tparam'][2])+
-                   " , Cx = "+str(twostage[0][1]['tparam'][3]),
-                   line_color = d3['Category20'][3][2])
+#    mutid_comm_extr.legend.location = "bottom_right"
+#    mutid_comm_extr.legend.click_policy = "hide"    
+#    
+#    # Plot the two-stage version, GA then Comm
+#    f = open('../../data/interim/mouse_twostage_test.stat')
+#    twostage = json.load(f)
+#    f.close()
+#    
+#    gagrp_fig = figure(title = "GA with GA-Comm")
+#    df_2stage = [ twostage[k][0]['tmax'] for k in range(2)]
+#    df_2stage_grp = [twostage[k][1]['tmax'] for k in range(2)]
+#    avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
+#    avg_tmax_2stg_grp = (np.mean(df_2stage_grp, axis=0).tolist())
+#    xdata = twostage[0][0]['tgen']
+#    xdata_grp = [ (twostage[0][1]['tgen'][k]+len(xdata)) for k in range(len(twostage[0][1]['tgen'])) ]
+#    #xdata = xdata + tmpx
+#    gagrp_fig.line(xdata, avg_tmax_2stg,
+#                   legend = 
+#                   "GA - Mut. = "+str(twostage[0][0]['tparam'][2])+
+#                   " , Cx = "+str(twostage[0][0]['tparam'][3]),
+#                   line_color = d3['Category20'][3][0])
+#    gagrp_fig.line(xdata_grp, avg_tmax_2stg_grp,
+#                   legend =
+#                   "GA-Comm - Mut. = "+str(twostage[0][1]['tparam'][2])+
+#                   " , Cx = "+str(twostage[0][1]['tparam'][3]),
+#                   line_color = d3['Category20'][3][2])
     
     show(gridplot([[cxfig, cx_comfig], [mut_fig, mut_comfig], 
-                   [mutidfig, mutid_comfig], [mutid_extr, mutid_comm_extr], 
-                   [None, gagrp_fig]]) )  
+                   [mutidfig, mutid_comfig]]) )  
 #    show(column(cxfig, mut_fig, mut_comfig, mutidfig, mutid_comfig) )  
