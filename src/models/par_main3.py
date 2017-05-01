@@ -128,6 +128,14 @@ def get_parser():
                         dest="verbose",
                         default=True,
                         help="don't print status messages to stdout")
+    parser.add_argument("-t", "--type",
+                        dest="type",
+                        default=1,
+                        help="Optimization Scheme: 1 - Node-Centric, 2 - GA, 3 - GA-Comm, 4 - Comm-GA")
+    parser.add_argument("-l", "--loops",
+                        dest = "cycle",
+                        default = 1,
+                        help="How many times to repeat optimization scheme")
     return parser
 
 
@@ -549,25 +557,38 @@ if __name__ == "__main__":
     #Base Parameters:
     #param = list([50, 2000, 0.1, 0.1, 0.05, 0.1])
     param = list([50, 3000, 0.1, 0.1, 0.05])
-    # Set which graph we are testing on.
-    G_global = G_full
-    
-    # ============
-    # When using "update_graph" MUST MAKE COPY OF GRAPH FOR EACH DISTRIBUTED
-    # COMPUT NODE! -- Python auto-passes by REFERENCE, so otherwise solutions
-    # will get all super jumbled up!
-    # ============
+
     
     # --------
-    # This section runs the GA on the base graph
+    # This section runs the various optimization schemes.
+    #  Note that when passing the graph we actually pass a copy of it to avoid
+    #  referencing/overwrite issues when doing distributed computing.
     # --------
-    # Pre-declare mapdata as a list of lists
+    
+    # Pre-declare mapdata as a list of lists, then fill it with data to dist
     mapdata = list(list())
-    for optfull in range(50):
-        mapdata.append(list([1, G_full.copy(), list(params_full), list(params_comm)]))
-        
-        
-    full_logbook = list(futures.map(one_series_trial_CM_GA, mapdata))
+    for optfull in range(args.ntrials):
+        if args.type == 1:
+            break
+        elif args.type == 2:
+            mapdata.append(list(G_full.copy(), list(param)))
+        elif args.type == 3:
+            mapdata.append(list([1, G_full.copy(), list(params_full), list(params_comm)]))
+        elif args.type == 4:
+            mapdata.append(list([1, G_full.copy(), list(params_full), list(params_comm)]))
+        else:
+            print("Invalid scheme")
+            exit()
+    
+    #  Use scoop to actually map the data out to the compute nodes.
+    if args.type == 1:
+        full_logbook = node_centric(G_full)
+    elif args.type == 2:
+        full_logbook = list(futures.map(Run_GA, mapdata))
+    elif args.type == 3:
+        full_logbook = list(futures.map(one_series_trial_GA_CM, mapdata))
+    elif args.type == 4:
+        full_logbook = list(futures.map(one_series_trial_CM_GA, mapdata))
 
 
         
