@@ -24,7 +24,7 @@ import numpy as np
 import networkx as nx  # Defines G.edges and G.node
 
 from scoop import futures #imports the scoop distributed computing package.
-from copy import deepcopy
+
 
 # %%
 # These have to be global for multiprocessing and scoop (?).
@@ -216,44 +216,6 @@ def compute_initial_pairs(G):
     
     return Initial_matepairs
 
-def node_centric(G):
-    node_net=[None]*G.vcount()
-    node_good = [None]*G.vcount()
-    node_bad = [None]*G.vcount()
-    
-    for edge in G.es:
-        # Source
-        node_good[edge.source] += G.es[edge]['w1']
-        node_bad[edge.source] += G.es[edge]['w2']
-        
-        # Target
-        node_good[edge.target] += G.es[edge]['w1']
-        node_bad[edge.target] += G.es[edge]['w2']
-    
-    for i in range(G.vcount()):
-        node_net[i] = node_good[i] - node_bad[i]
-
-    node_ort = [False]*G.vcount()
-    
-    # Find the max -> min ordering of the node-happiness
-    sort_ord = np.argsort(node_net)
-    while (node_net[sort_ord[-1]] < 0) :  #  Keep looping till all statified or ort
-    # Note: To help this loop condition, nodes with flipped ort will be inf
-    
-        # Set ort to 'true' (flipped) and unhappy value to 'inf'
-        node_net[sort_ord[-1]] = np.inf
-        node_ort[sort_ord[-1]] = True
-        
-        # Loop through neighbors and update their good-bad values.
-        for i in G.vs[sort_ord[-1]].neighbors():
-            edge = G.get_eid(sort_ord[-1], i)
-            node_net[i] = node_net[i] + G.es[edge]['w2'] - G.es[edge]['w1']
-            
-        sort_ord = np.argsort(node_net)
-
-
-    return node_ort
-        
 
 def update_graph(G, orient):
     for edge in range(G.ecount()):
@@ -289,133 +251,100 @@ def trials(allparam):
     
     return param_logbook
 
-def one_series_trial_GA_CM(allparam):
-    # One trial with GA then Group GA for scoop mapping
-    myG = allparam[1]  # Just for easier referencing -- myG should be a node local copy of the graph.
-    param_logbook=tools.Logbook()
+def Internal_External(myG, myClusters, CurrOrt):
+    #  This function will return the internal/external mate-pairs for
+    #  each cluster, based on the input orientation.
+    intercluster = myClusters.crossing()
     
-    pop, tbestort, tlogbook = Run_GA(myG, allparam[2])
+    num_cluster = np.max(myClusters.membership)+1
+    cluster_score = dict(igood=[False]*num_cluster, ibad=[False]*num_cluster,
+                         egood=[False]*num_cluster, ebad=[False]*num_cluster,
+                         ifit =[False]*num_cluster, efit=[False]*num_cluster)
+    for edge in myG.es:
+        #  Split inner/outer based on crossing true/false.
+        if intercluster[edge.index]: # External Edges
+            #  Check orientations to correctly use edge weights.
+            if CurrOrt[edge.source] == CurrOrt[edge.target]:
+                cluster_score["egood"][myClusters.membership[edge.source]]+=edge["w1"]
+                cluster_score["egood"][myClusters.membership[edge.target]]+=edge["w1"]
+                cluster_score["ebad"][myClusters.membership[edge.source]]+=edge["w2"]
+                cluster_score["ebad"][myClusters.membership[edge.target]]+=edge["w2"]
+            else:
+                cluster_score["egood"][myClusters.membership[edge.source]]+=edge["w2"]
+                cluster_score["egood"][myClusters.membership[edge.target]]+=edge["w2"]
+                cluster_score["ebad"][myClusters.membership[edge.source]]+=edge["w1"]
+                cluster_score["ebad"][myClusters.membership[edge.target]]+=edge["w1"]                
+        else: # Internal Edges
+            #  Check orientations to correctly use edge weights.
+            if CurrOrt[edge.source] == CurrOrt[edge.target]:
+                cluster_score["igood"][myClusters.membership[edge.source]]+=edge["w1"]
+                cluster_score["igood"][myClusters.membership[edge.target]]+=edge["w1"]
+                cluster_score["ibad"][myClusters.membership[edge.source]]+=edge["w2"]
+                cluster_score["ibad"][myClusters.membership[edge.target]]+=edge["w2"]
+            else:
+                cluster_score["igood"][myClusters.membership[edge.source]]+=edge["w2"]
+                cluster_score["igood"][myClusters.membership[edge.target]]+=edge["w2"]
+                cluster_score["ibad"][myClusters.membership[edge.source]]+=edge["w1"]
+                cluster_score["ibad"][myClusters.membership[edge.target]]+=edge["w1"]                
 
-    param_logbook.record(trial='GA-Full', tmax=tlogbook.select('max'),
-                            tbort=tbestort, tgen=tlogbook.select('gen'),
-                            tmin=tlogbook.select('min'),
-                            tstd=tlogbook.select('std'),
-                            tmean=tlogbook.select('mean'),
-                            tparam=allparam[2])
-    hof_trials.update(pop)
+                
+        
+    for i in range(num_cluster):
+        # Denominators split for line-length.
+        tmp_denom = (cluster_score["igood"][i]+cluster_score["ibad"][i])
+        if tmp_denom != 0 :
+            cluster_score["ifit"][i] = cluster_score["igood"][i]/ tmp_denom
+        else:
+            cluster_score["ifit"][i] = np.NaN
+        
+        tmp_denom = (cluster_score["egood"][i]+cluster_score["ebad"][i])
+        if tmp_denom != 0 :
+            cluster_score["efit"][i] = cluster_score["egood"][i]/ tmp_denom
+        else:
+            cluster_score["efit"][i] = np.NaN
+        
+        
+            
+    return cluster_score
+            
+def node_centric(G):
+    node_net=[False]*G.vcount()
+    node_good = [False]*G.vcount()
+    node_bad = [False]*G.vcount()
+    
+    for edge in G.es:
+        # Source
+        node_good[edge.source] += edge['w1']
+        node_bad[edge.source] += edge['w2']
+        
+        # Target
+        node_good[edge.target] +=edge['w1']
+        node_bad[edge.target] += edge['w2']
+    
+    for i in range(G.vcount()):
+        node_net[i] = node_good[i] - node_bad[i]
 
-    print("Finished base GA")
+    node_ort = [False]*G.vcount()
     
-    # Reorient base graph using best orientation.
-    update_graph(myG, tbestort)
+    # Find the max -> min ordering of the node-happiness
+    sort_ord = np.argsort(node_net)
+    while (node_net[sort_ord[-1]] < 0) :  #  Keep looping till all statified or ort
+    # Note: To help this loop condition, nodes with flipped ort will be inf
     
-    full_best_ort = deepcopy(tbestort)  # Preserve best orientation for merging later.
-    #tmp_ort = deepcopy(tbestort) # This will be overwritten by unmapping community orientation
-    #final_ort = deepcopy(tbestort)  # This will hold the final merged orientation.
+        # Set ort to 'true' (flipped) and unhappy value to 'inf'
+        node_net[sort_ord[-1]] = np.inf
+        node_ort[sort_ord[-1]] = True
+        
+        # Loop through neighbors and update their good-bad values.
+        for i in G.vs[sort_ord[-1]].neighbors():
+            edge = G.get_eid(sort_ord[-1], i)
+            node_net[i] = node_net[i] + G.es[edge]['w2'] - G.es[edge]['w1']
+            
+        sort_ord = np.argsort(node_net)
 
-    # Generate a reduced by community graph.
-    # Cluster membership of a given node can be dereferenced by:
-    # *_clusters.membership[node] thus the orientation of a node from cluster
-    # is: clus_ort[*_clusters.membership[node]] 
-    G_full_dendrogram = myG.community_fastgreedy(weights="mates")
-    G_full_clusters = G_full_dendrogram.as_clustering()
-    myG_comm = G_full_clusters.cluster_graph(combine_edges=sum)        
-    
-    pop, tbestort, tlogbook = Run_GA(myG_comm, allparam[3])
 
-    param_logbook.record(trial='GA-Comm', tmax=tlogbook.select('max'),
-                            tbort=tbestort, tgen=tlogbook.select('gen'),
-                            tmin=tlogbook.select('min'),
-                            tstd=tlogbook.select('std'),
-                            tmean=tlogbook.select('mean'),
-                            tparam=allparam[3])
-    hof_trials.update(pop)
-    
-    # Unmap community orientation
-    final_ort=[None]*len(full_best_ort)
-    for i in range(len(full_best_ort)):
-        final_ort[i] = tbestort[G_full_clusters.membership[i]]^full_best_ort[i]
-    
-    # Merge the unmapped orientation.... except. not.
-#    final_ort=[None]*len(full_best_ort)
-#    for i in range(len(full_best_ort)):
-#        final_ort[i]=full_best_ort[i]^tmp_ort[i]  
-    
-    param_logbook.record(merged_ort = final_ort)
-    
-    print("Finished trial")
-    return param_logbook
+    return node_ort
 
-def one_series_trial_CM_GA(allparam):
-    # One trial with GA then Group GA for scoop mapping
-    myG = allparam[1]  # Just for easier referencing -- myG should be a node local copy of the graph.
-    param_logbook=tools.Logbook()
- 
-    #  Run optimization on community-grouped graph.
-    G_full_dendrogram = myG.community_fastgreedy(weights="mates")
-    G_full_clusters = G_full_dendrogram.as_clustering()
-    myG_comm = G_full_clusters.cluster_graph(combine_edges=sum)        
-    
-    pop, tbestort, tlogbook = Run_GA(myG_comm, allparam[3])
-
-    param_logbook.record(trial='GA-Comm', tmax=tlogbook.select('max'),
-                            tbort=tbestort, tgen=tlogbook.select('gen'),
-                            tmin=tlogbook.select('min'),
-                            tstd=tlogbook.select('std'),
-                            tmean=tlogbook.select('mean'),
-                            tparam=allparam[3])
-    hof_trials.update(pop)
-    
-    print("Finished CM")
-    
-    #  Get individual contig orientations from group orientations to set graph
-    unmap_ort = [None]*myG.vcount()
-    for i in range(unmap_ort):
-        unmap_ort[i] = tbestort[G_full_clusters.membership[i]]
-    
-    update_graph(myG, unmap_ort)
-    
-    
-    #  Run optimization on full graph
-    pop, tbestort, tlogbook = Run_GA(myG, allparam[2])
-
-    param_logbook.record(trial='GA-Full', tmax=tlogbook.select('max'),
-                            tbort=tbestort, tgen=tlogbook.select('gen'),
-                            tmin=tlogbook.select('min'),
-                            tstd=tlogbook.select('std'),
-                            tmean=tlogbook.select('mean'),
-                            tparam=allparam[2])
-    hof_trials.update(pop)
-
-    print("Finished GA")
-    
-    
-    full_best_ort = deepcopy(tbestort)  # Preserve best orientation for merging later.
-    #tmp_ort = deepcopy(tbestort) # This will be overwritten by unmapping community orientation
-    #final_ort = deepcopy(tbestort)  # This will hold the final merged orientation.
-
-    # Generate a reduced by community graph.
-    # Cluster membership of a given node can be dereferenced by:
-    # *_clusters.membership[node] thus the orientation of a node from cluster
-    # is: clus_ort[*_clusters.membership[node]] 
-
-    
-    # Unmap community orientation
-    final_ort=[None]*len(full_best_ort)
-    for i in range(len(full_best_ort)):
-        final_ort[i] = unmap_ort[i]^full_best_ort[i]
-    
-    # Merge the unmapped orientation.... except. not.
-#    final_ort=[None]*len(full_best_ort)
-#    for i in range(len(full_best_ort)):
-#        final_ort[i]=full_best_ort[i]^tmp_ort[i]  
-    
-    param_logbook.record(merged_ort = final_ort)
-    
-    
-    return param_logbook    
-    
-    
 # %%
 if __name__ == "__main__":
     """
@@ -437,8 +366,8 @@ if __name__ == "__main__":
     
     # Located near top to ease changing them. May be overwritten in testing.
     #params_full = list([200, 10, 0.10, 0.20, 0.1, 0.2])
-    params_full = list([50, 1500, 0.30, 0.90, 0.05]) # Not Uniform CX
-    params_comm = list([50, 1500, 0.30, 0.70, 0.025])
+    params_full = list([200, 10, 0.10, 0.20, 0.1]) # Not Uniform CX
+    #params_comm = list([200, 10, 0.10, 0.20, 0.1, 0.2])
     
     #Replicated from Run_GA for reference.
     #POP_SIZE = params[0]    # Size of the overall population
@@ -470,9 +399,9 @@ if __name__ == "__main__":
     # Cluster membership of a given node can be dereferenced by:
     # *_clusters.membership[node] thus the orientation of a node from cluster
     # is: clus_ort[*_clusters.membership[node]] 
-    #G_full_dendrogram = G_full.community_fastgreedy(weights="mates")
-    #G_full_clusters = G_full_dendrogram.as_clustering()
-    #G_comm = G_full_clusters.cluster_graph(combine_edges=sum)
+    G_full_dendrogram = G_full.community_fastgreedy(weights="mates")
+    G_full_clusters = G_full_dendrogram.as_clustering()
+    G_comm = G_full_clusters.cluster_graph(combine_edges=sum)
 
     
     # %%
@@ -480,38 +409,21 @@ if __name__ == "__main__":
     logbook=tools.Logbook()
     full_logbook=tools.Logbook()  # Logbook for running just the base GA
     
-    #Parameter Sweep
-    #Base Parameters:
-    #param = list([50, 2000, 0.1, 0.1, 0.05, 0.1])
-    param = list([50, 3000, 0.1, 0.1, 0.05])
-    # Set which graph we are testing on.
-    G_global = G_full
+    #perform node-centric orientation
+    node_ort = node_centric(G_full)
+    nodescr = evaluate(node_ort, G_full, Init_mps_full)
+    print("Node Centric Fitness:", nodescr)
     
-    # ============
-    # When using "update_graph" MUST MAKE COPY OF GRAPH FOR EACH DISTRIBUTED
-    # COMPUT NODE! -- Python auto-passes by REFERENCE, so otherwise solutions
-    # will get all super jumbled up!
-    # ============
+    #Score base communities.
+    null_ort = [False]*G_full.vcount()
+    cls_scr = Internal_External(G_full, G_full_clusters, null_ort)
     
-    # --------
-    # This section runs the GA on the base graph
-    # --------
-    # Pre-declare mapdata as a list of lists
-    mapdata = list(list())
-    for optfull in range(50):
-        mapdata.append(list([1, G_full.copy(), list(params_full), list(params_comm)]))
-        
-        
-    full_logbook = list(futures.map(one_series_trial_CM_GA, mapdata))
+    for i in range(len(cls_scr["ifit"])):
+        print("Cluster ", i, " I-Fit: ", cls_scr["ifit"][i], " E-Fit: ", cls_scr["efit"][i])
+    
+    
+    
 
-
-        
-    print("Finished trials of parameter") #: ", param[2])
-        
-    with open(args.output_stats, 'w') as f:
-        json.dump(full_logbook,f)
-
-    exit()
 
 
 

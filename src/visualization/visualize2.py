@@ -143,13 +143,13 @@ if __name__ == "__main__":
 
 
     # Plot the two-stage version, GA then Comm
-    f = open('../../data/interim/mouse_twostage_test.stat')
+    f = open('../../data/interim/mouse_twostage_full.stat')
     twostage = json.load(f)
     f.close()
     
     gagrp_fig = figure(title = "GA with GA-Comm")
-    df_2stage = [ twostage[k][0]['tmax'] for k in range(2)]
-    df_2stage_grp = [twostage[k][1]['tmax'] for k in range(2)]
+    df_2stage = [ twostage[k][0]['tmax'] for k in range(50)]
+    df_2stage_grp = [twostage[k][1]['tmax'] for k in range(50)]
     avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
     avg_tmax_2stg_grp = (np.mean(df_2stage_grp, axis=0).tolist())
     xdata = twostage[0][0]['tgen']
