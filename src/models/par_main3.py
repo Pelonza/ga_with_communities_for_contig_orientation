@@ -13,11 +13,8 @@ from deap import algorithms
 
 import random
 import os
-import multiprocessing
 
 import json
-#import dill as pickle
-import pickle
 import igraph as ig
 
 import numpy as np
@@ -136,6 +133,11 @@ def get_parser():
                         dest = "cycle",
                         default = 1,
                         help="How many times to repeat optimization scheme")
+    parser.add_argument("-g", "--gen",
+                        dest="generations",
+                        default = 1000,
+                        type = int,
+                        help = "Set the number of generations for the run")
     return parser
 
 
@@ -437,7 +439,7 @@ def one_series_trial_CM_GA(allparam):
     
     #  Get individual contig orientations from group orientations to set graph
     unmap_ort = [None]*myG.vcount()
-    for i in range(unmap_ort):
+    for i in range(myG.vcount()):
         unmap_ort[i] = tbestort[G_full_clusters.membership[i]]
     
     update_graph(myG, unmap_ort)
@@ -469,7 +471,7 @@ def one_series_trial_CM_GA(allparam):
     
     # Unmap community orientation
     final_ort=[None]*len(full_best_ort)
-    for i in range(len(full_best_ort)):
+    for i in range(myG.vcount()):
         final_ort[i] = unmap_ort[i]^full_best_ort[i]
     
     # Merge the unmapped orientation.... except. not.
@@ -477,8 +479,8 @@ def one_series_trial_CM_GA(allparam):
 #    for i in range(len(full_best_ort)):
 #        final_ort[i]=full_best_ort[i]^tmp_ort[i]  
     
-    tmp_clusterscr = Internal_External(G_full, G_full_clusters, unmap_ort)
-    tmp_gaclsscr = Internal_External(G_full, G_full_clusters, final_ort)
+    tmp_clusterscr = Internal_External(myG, G_full_clusters, unmap_ort)
+    tmp_gaclsscr = Internal_External(myG, G_full_clusters, final_ort)
     param_logbook.record(merged_ort = final_ort, 
                          postcommclsscr = tmp_clusterscr,
                          postgaclsscr = tmp_gaclsscr,
@@ -509,9 +511,10 @@ if __name__ == "__main__":
     #toolbox.register("map", pool.map)
     
     # Located near top to ease changing them. May be overwritten in testing.
-    #params_full = list([200, 10, 0.10, 0.20, 0.1, 0.2])
-    params_full = list([50, 1500, 0.30, 0.90, 0.05]) # Not Uniform CX
-    params_comm = list([50, 1500, 0.30, 0.70, 0.025])
+    # param -> for GA, full for on complete graph, comm for on reduced graph. 
+    param = list([50, args.generations, 0.3, 0.9, 0.025])
+    params_full = list([50, args.generations, 0.30, 0.90, 0.025])
+    params_comm = list([50, args.generations, 0.30, 0.70, 0.025])
     
     #Replicated from Run_GA for reference.
     #POP_SIZE = params[0]    # Size of the overall population
@@ -556,7 +559,7 @@ if __name__ == "__main__":
     #Parameter Sweep
     #Base Parameters:
     #param = list([50, 2000, 0.1, 0.1, 0.05, 0.1])
-    param = list([50, 3000, 0.1, 0.1, 0.05])
+    
 
     
     # --------
@@ -568,26 +571,26 @@ if __name__ == "__main__":
     # Pre-declare mapdata as a list of lists, then fill it with data to dist
     mapdata = list(list())
     for optfull in range(args.ntrials):
-        if args.type == 1:
+        if args.type == '1':
             break
-        elif args.type == 2:
+        elif args.type == '2':
             mapdata.append(list(G_full.copy(), list(param)))
-        elif args.type == 3:
+        elif args.type == '3':
             mapdata.append(list([1, G_full.copy(), list(params_full), list(params_comm)]))
-        elif args.type == 4:
+        elif args.type == '4':
             mapdata.append(list([1, G_full.copy(), list(params_full), list(params_comm)]))
         else:
             print("Invalid scheme")
             exit()
     
     #  Use scoop to actually map the data out to the compute nodes.
-    if args.type == 1:
+    if args.type == '1':
         full_logbook = node_centric(G_full)
-    elif args.type == 2:
+    elif args.type == '2':
         full_logbook = list(futures.map(Run_GA, mapdata))
-    elif args.type == 3:
+    elif args.type == '3':
         full_logbook = list(futures.map(one_series_trial_GA_CM, mapdata))
-    elif args.type == 4:
+    elif args.type == '4':
         full_logbook = list(futures.map(one_series_trial_CM_GA, mapdata))
 
 
