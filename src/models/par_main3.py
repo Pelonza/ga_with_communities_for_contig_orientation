@@ -574,7 +574,7 @@ if __name__ == "__main__":
         if args.type == '1':
             break
         elif args.type == '2':
-            mapdata.append(list(G_full.copy(), list(param)))
+            mapdata.append(list([G_full.copy(), list(param)]))
         elif args.type == '3':
             mapdata.append(list([1, G_full.copy(), list(params_full), list(params_comm)]))
         elif args.type == '4':
