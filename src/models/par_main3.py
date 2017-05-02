@@ -388,7 +388,7 @@ def one_series_trial_GA_CM(allparam):
     G_full_clusters = G_full_dendrogram.as_clustering()
     myG_comm = G_full_clusters.cluster_graph(combine_edges=sum)        
     
-    pop, tbestort, tlogbook = Run_GA(list([myG_comm, allparam[3]])
+    pop, tbestort, tlogbook = Run_GA(list([myG_comm, allparam[3]]))
 
     param_logbook.record(trial='GA-Comm', tmax=tlogbook.select('max'),
                             tbort=tbestort, tgen=tlogbook.select('gen'),
