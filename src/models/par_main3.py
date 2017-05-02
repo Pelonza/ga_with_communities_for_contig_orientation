@@ -206,6 +206,7 @@ def Run_GA(inparams):
     toolbox.unregister("mate")
     toolbox.unregister("mutate")
     
+    print("Finished a local GA")
     return pop, best_ort, tlogbook
 
 
@@ -506,7 +507,7 @@ if __name__ == "__main__":
     #global G_global  # Allow G_global to be modified in this script.
 
     args = get_parser().parse_args()
-    random.seed(1)  # For testing/reproducibility.
+    random.seed(2)  # For testing/reproducibility.
     
     #pool = multiprocessing.Pool()
     #toolbox.register("map", pool.map)
