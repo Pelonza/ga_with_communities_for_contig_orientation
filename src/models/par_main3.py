@@ -531,7 +531,11 @@ if __name__ == "__main__":
     #global G_global  # Allow G_global to be modified in this script.
 
     args = get_parser().parse_args()
+<<<<<<< Updated upstream
     random.seed(args.rseed)  # For testing/reproducibility.
+=======
+    random.seed(3)  # For testing/reproducibility.
+>>>>>>> Stashed changes
     
     #pool = multiprocessing.Pool()
     #toolbox.register("map", pool.map)
