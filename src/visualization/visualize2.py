@@ -11,6 +11,15 @@ Dependencies:
 
 Second visualization file to reduce total number of graphs being plotted per
 run to speed up plotting/loading of data.
+
+Files visualized in this script:
+    mouse_mutidpb_2d5_15_by_2d5_comm.stat
+    mouse_mutidpb_2d5_15_by_2d5.stat
+    mouse_2xswp_15_30mut_20_30cx.stat
+    mouse_2xswp_15_40mut_15_35cx.stat
+    
+    
+    
 """
 
 from bokeh.plotting import figure, output_file, show

@@ -9,6 +9,14 @@ Dependencies:
     DEAP
     json
     
+Files being visualized in this script:
+    mouse_cx.stat    
+    mouse_mut.stat
+    mouse_cx_comm_B.stat
+    mouse_mut_comm.stat
+    mouse_mutidpb.stat
+    mouse_mutID_comm2
+    
 """
 
 import bokeh as bk
