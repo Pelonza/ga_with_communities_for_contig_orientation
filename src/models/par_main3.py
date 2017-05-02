@@ -132,7 +132,7 @@ def get_parser():
     parser.add_argument("-l", "--loops",
                         dest = "cycle",
                         default = 1,
-                        type = int
+                        type = int,
                         help="How many times to repeat optimization scheme")
     parser.add_argument("-g", "--gen",
                         dest="generations",
@@ -142,8 +142,13 @@ def get_parser():
     parser.add_argument("-p", "--preort",
                         dest = "preort",
                         default = False,
-                        type = bool
+                        type = bool,
                         help = "Preorient with Node Centric: True/False, default False")
+    parser.add_argument("-r", "--rseed",
+                        dest = "rseed",
+                        default = 1,
+                        type = int,
+                        help = "Set the random seed for trial")
     return parser
 
 
@@ -526,7 +531,7 @@ if __name__ == "__main__":
     #global G_global  # Allow G_global to be modified in this script.
 
     args = get_parser().parse_args()
-    random.seed(2)  # For testing/reproducibility.
+    random.seed(args.rseed)  # For testing/reproducibility.
     
     #pool = multiprocessing.Pool()
     #toolbox.register("map", pool.map)
@@ -630,8 +635,10 @@ if __name__ == "__main__":
             if args.type == '2':
                 # Only ran the GA
                 # Run_GA returns : pop, tbestort, tlogbook
+                print(nodeort)
+                print(full_logbook[i][1])
                 merge_ort(nodeort, full_logbook[i][1], full_logbook[i][1])
-                
+                print(full_logbook[i][1])
             elif (args.type == '3' or args.type == '4'):
                 # Ran a two-stage
                 merge_ort(nodeort, full_logbook[i][2]['merged_ort'], full_logbook[i][2]['merged_ort'] )
