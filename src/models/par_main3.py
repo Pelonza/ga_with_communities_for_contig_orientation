@@ -156,9 +156,10 @@ def evaluate(individual, G, Init_pairs):
     return (Orient_pairs[1]/Orient_pairs[0], )
 
 
-def Run_GA(G, params):
+def Run_GA(inparams):
     # Sets up and runs the GA using DEAP on the input graph.
-    
+    G = inparams[0]
+    params = inparams[1]
     # Setup GA
     # Note this is included for readability/reference.
     # Set some GA parameters:
@@ -360,7 +361,7 @@ def one_series_trial_GA_CM(allparam):
     myG = allparam[1]  # Just for easier referencing -- myG should be a node local copy of the graph.
     param_logbook=tools.Logbook()
     
-    pop, tbestort, tlogbook = Run_GA(myG, allparam[2])
+    pop, tbestort, tlogbook = Run_GA(list([myG, allparam[2]]))
 
     param_logbook.record(trial='GA-Full', tmax=tlogbook.select('max'),
                             tbort=tbestort, tgen=tlogbook.select('gen'),
@@ -387,7 +388,7 @@ def one_series_trial_GA_CM(allparam):
     G_full_clusters = G_full_dendrogram.as_clustering()
     myG_comm = G_full_clusters.cluster_graph(combine_edges=sum)        
     
-    pop, tbestort, tlogbook = Run_GA(myG_comm, allparam[3])
+    pop, tbestort, tlogbook = Run_GA(list([myG_comm, allparam[3]])
 
     param_logbook.record(trial='GA-Comm', tmax=tlogbook.select('max'),
                             tbort=tbestort, tgen=tlogbook.select('gen'),
@@ -425,7 +426,7 @@ def one_series_trial_CM_GA(allparam):
     G_full_clusters = G_full_dendrogram.as_clustering()
     myG_comm = G_full_clusters.cluster_graph(combine_edges=sum)        
     
-    pop, tbestort, tlogbook = Run_GA(myG_comm, allparam[3])
+    pop, tbestort, tlogbook = Run_GA(list([myG_comm, allparam[3]]))
 
     param_logbook.record(trial='GA-Comm', tmax=tlogbook.select('max'),
                             tbort=tbestort, tgen=tlogbook.select('gen'),
@@ -446,7 +447,7 @@ def one_series_trial_CM_GA(allparam):
     
     
     #  Run optimization on full graph
-    pop, tbestort, tlogbook = Run_GA(myG, allparam[2])
+    pop, tbestort, tlogbook = Run_GA(list([myG, allparam[2]]))
 
     param_logbook.record(trial='GA-Full', tmax=tlogbook.select('max'),
                             tbort=tbestort, tgen=tlogbook.select('gen'),
