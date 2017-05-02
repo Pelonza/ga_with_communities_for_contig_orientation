@@ -132,12 +132,18 @@ def get_parser():
     parser.add_argument("-l", "--loops",
                         dest = "cycle",
                         default = 1,
+                        type = int
                         help="How many times to repeat optimization scheme")
     parser.add_argument("-g", "--gen",
                         dest="generations",
                         default = 1000,
                         type = int,
                         help = "Set the number of generations for the run")
+    parser.add_argument("-p", "--preort",
+                        dest = "preort",
+                        default = False,
+                        type = bool
+                        help = "Preorient with Node Centric: True/False, default False")
     return parser
 
 
@@ -155,66 +161,23 @@ def evaluate(individual, G, Init_pairs):
 
     return (Orient_pairs[1]/Orient_pairs[0], )
 
-
-def Run_GA(inparams):
-    # Sets up and runs the GA using DEAP on the input graph.
-    G = inparams[0]
-    params = inparams[1]
-    # Setup GA
-    # Note this is included for readability/reference.
-    # Set some GA parameters:
-    IND_SIZE = G.vcount()   # Size of individual in population
-    POP_SIZE = params[0]    # Size of the overall population
-    NGEN     = params[1]    # Number of generations to evolve for
-    MUT_PB   = params[2]    # Probability that an offspring will mutate
-    CX_PB    = params[3]    # Probability that two children will crossover 
-    MUT_IDPB = params[4]    # Independent probability of an attribute mutating
-    #CX_IDPB  = params[5]    # Independent probability of an attribute crossover
-    
-    # Define objects for/from DEAP's toolbox
-    Init_mps = compute_initial_pairs(G)
-    
-    try:
-        assert Init_mps[0] != 0
-    except:
-        print("No matepairs in graph for Run_GA")
-
-    toolbox.register("individual", tools.initRepeat, creator.Individual,
-                     toolbox.attr_bool, n=IND_SIZE)
-    toolbox.register("population", tools.initRepeat, list,
-                     toolbox.individual)
-    toolbox.register("evaluate", evaluate, G=G,
-                     Init_pairs=Init_mps)
-    #toolbox.register("mate", tools.cxUniform, indpb=CX_IDPB)
-    toolbox.register("mate", tools.cxOnePoint)
-    toolbox.register("mutate", tools.mutFlipBit, indpb=MUT_IDPB)
-    
-    hof_local.clear()
-    
-    pop = toolbox.population(n=POP_SIZE)
-    pop, tlogbook = algorithms.eaSimple(pop, toolbox, cxpb=CX_PB, mutpb=MUT_PB,
-                                        ngen=NGEN, stats=stats,
-                                        halloffame=hof_local,
-                                        verbose=False)
-        
-    best_ort = hof_local[0]
-    
-    # Clean-up the toolbox from this call to run a GA
-    toolbox.unregister("individual")
-    toolbox.unregister("population")
-    toolbox.unregister("evaluate")
-    toolbox.unregister("mate")
-    toolbox.unregister("mutate")
-    
-    print("Finished a local GA")
-    return pop, best_ort, tlogbook
-
-
 def merge_ort(orient1, orient2, outort):
     for i in range(len(orient1)):
         outort[i]=orient1[i]^orient2[i]        
     return
 
+def update_graph(G, orient):
+    for edge in range(G.ecount()):
+        if orient[G.es[edge].tuple[0]] != orient[G.es[edge].tuple[1]]:
+            #Swap 'w1' and 'w2' (also 'w3' and 'w4' to reduce fixing later)
+            tmp = G.es[edge]['w1']
+            G.es[edge]['w1'] = G.es[edge]['w2']
+            G.es[edge]['w2'] = tmp
+            tmp = G.es[edge]['w3']
+            G.es[edge]['w3'] = G.es[edge]['w4']
+            G.es[edge]['w4'] = tmp
+    
+    return
 
 def compute_initial_pairs(G):
     # Compute basic data about the tally file/input data.
@@ -279,10 +242,101 @@ def Internal_External(myG, myClusters, CurrOrt):
             cluster_score["efit"][i] = cluster_score["egood"][i]/ tmp_denom
         else:
             cluster_score["efit"][i] = np.NaN
-        
-        
             
     return cluster_score
+
+def trials(allparam):
+    # Attempt to move trial loop to a function for scoop mapping.
+    # This is hold-over code from running parameter sweeps. In the final
+    # 'production' version, this is not being used, rather Run_GA is used
+    # directly. 
+    
+    param_logbook=tools.Logbook() #Create a logbook to hold the trials.
+    # Loop here
+    for i in range(allparam[0]):
+        
+        # ----------------
+        # This chunk runs a GA then records it as a trial.
+        pop, tbestort, tlogbook = Run_GA(list([allparam[1], allparam[2]]))
+        param_logbook.record(trial=i, tmax=tlogbook.select('max'),
+                            tbort=tbestort, tgen=tlogbook.select('gen'),
+                            tmin=tlogbook.select('min'),
+                            tstd=tlogbook.select('std'),
+                            tmean=tlogbook.select('mean'),
+                            tparam=allparam[2])
+        hof_trials.update(pop)
+    
+    return param_logbook
+
+def Run_GA(inparams):
+    # Sets up and runs the GA using DEAP on the input graph.
+    G = inparams[0]
+    params = inparams[1]
+    # Setup GA
+    # Note this is included for readability/reference.
+    # Set some GA parameters:
+    IND_SIZE = G.vcount()   # Size of individual in population
+    POP_SIZE = params[0]    # Size of the overall population
+    NGEN     = params[1]    # Number of generations to evolve for
+    MUT_PB   = params[2]    # Probability that an offspring will mutate
+    CX_PB    = params[3]    # Probability that two children will crossover 
+    MUT_IDPB = params[4]    # Independent probability of an attribute mutating
+    #CX_IDPB  = params[5]    # Independent probability of an attribute crossover
+    
+    # Define objects for/from DEAP's toolbox
+    Init_mps = compute_initial_pairs(G)
+    
+    try:
+        assert Init_mps[0] != 0
+    except:
+        print("No matepairs in graph for Run_GA")
+
+    toolbox.register("individual", tools.initRepeat, creator.Individual,
+                     toolbox.attr_bool, n=IND_SIZE)
+    toolbox.register("population", tools.initRepeat, list,
+                     toolbox.individual)
+    toolbox.register("evaluate", evaluate, G=G,
+                     Init_pairs=Init_mps)
+    #toolbox.register("mate", tools.cxUniform, indpb=CX_IDPB)
+    toolbox.register("mate", tools.cxOnePoint)
+    toolbox.register("mutate", tools.mutFlipBit, indpb=MUT_IDPB)
+    
+    hof_local.clear()
+    
+    pop = toolbox.population(n=POP_SIZE)
+    pop, tlogbook = algorithms.eaSimple(pop, toolbox, cxpb=CX_PB, mutpb=MUT_PB,
+                                        ngen=NGEN, stats=stats,
+                                        halloffame=hof_local,
+                                        verbose=False)
+        
+    best_ort = hof_local[0]
+    
+    # Clean-up the toolbox from this call to run a GA
+    toolbox.unregister("individual")
+    toolbox.unregister("population")
+    toolbox.unregister("evaluate")
+    toolbox.unregister("mate")
+    toolbox.unregister("mutate")
+    
+    #  -----------------
+    # Commented out adding extra for fear of screwing up other algorithm
+    # sequences. Needs to be cleaned up before final paper publication. 
+    
+#    # Adds an extra, final record to each run of the algorithm
+#    G_full_dendrogram = G.community_fastgreedy(weights="mates")
+#    G_full_clusters = G_full_dendrogram.as_clustering()
+#    myG_comm = G_full_clusters.cluster_graph(combine_edges=sum)  
+#    #tmp_clusterscr = Internal_External(G, G_full_clusters, full_best_ort)
+#    tmp_gaclsscr = Internal_External(G, G_full_clusters, best_ort)
+#    tlogbook.record(merged_ort = best_ort, 
+#                         postcommclsscr = [None],
+#                         postgaclsscr = tmp_gaclsscr,
+#                         order = "GA")
+
+# ------------------------------------------
+    
+    print("Finished a local GA")
+    return pop, best_ort, tlogbook
             
 def node_centric(G):
     node_net=[False]*G.vcount()
@@ -321,41 +375,6 @@ def node_centric(G):
 
 
     return node_ort
-        
-
-def update_graph(G, orient):
-    for edge in range(G.ecount()):
-        if orient[G.es[edge].tuple[0]] != orient[G.es[edge].tuple[1]]:
-            #Swap 'w1' and 'w2' (also 'w3' and 'w4' to reduce fixing later)
-            tmp = G.es[edge]['w1']
-            G.es[edge]['w1'] = G.es[edge]['w2']
-            G.es[edge]['w2'] = tmp
-            tmp = G.es[edge]['w3']
-            G.es[edge]['w3'] = G.es[edge]['w4']
-            G.es[edge]['w4'] = tmp
-    
-    return
-
-
-def trials(allparam):
-    # Attempt to move trial loop to a function for scoop mapping.
-    
-    param_logbook=tools.Logbook() #Create a logbook to hold the trials.
-    # Loop here
-    for i in range(allparam[0]):
-        
-        # ----------------
-        # This chunk runs a GA then records it as a trial.
-        pop, tbestort, tlogbook = Run_GA(allparam[1], allparam[2])
-        param_logbook.record(trial=i, tmax=tlogbook.select('max'),
-                            tbort=tbestort, tgen=tlogbook.select('gen'),
-                            tmin=tlogbook.select('min'),
-                            tstd=tlogbook.select('std'),
-                            tmean=tlogbook.select('mean'),
-                            tparam=allparam[2])
-        hof_trials.update(pop)
-    
-    return param_logbook
 
 def one_series_trial_GA_CM(allparam):
     # One trial with GA then Group GA for scoop mapping
@@ -570,6 +589,13 @@ if __name__ == "__main__":
     #  referencing/overwrite issues when doing distributed computing.
     # --------
     
+    # This runs a pre-orientation of the node-centric algorithm.
+    # It also reorients the base graph to match the found orientation.
+    if args.preort:
+        nodeort = node_centric(G_full)
+        update_graph(G_full, nodeort)
+    
+    
     # Pre-declare mapdata as a list of lists, then fill it with data to dist
     mapdata = list(list())
     for optfull in range(args.ntrials):
@@ -595,7 +621,22 @@ if __name__ == "__main__":
     elif args.type == '4':
         full_logbook = list(futures.map(one_series_trial_CM_GA, mapdata))
 
-
+    # If we performed a pre-orientation, all the orientations stored are 
+    # relative to the updated graph. So we need to update all the stored
+    # orientations to be an orientation relative to the original input graph.
+    
+    if args.preort:
+        for i in range(args.ntrials):
+            if args.type == '2':
+                # Only ran the GA
+                # Run_GA returns : pop, tbestort, tlogbook
+                merge_ort(nodeort, full_logbook[i][1], full_logbook[i][1])
+                
+            elif (args.type == '3' or args.type == '4'):
+                # Ran a two-stage
+                merge_ort(nodeort, full_logbook[i][2]['merged_ort'], full_logbook[i][2]['merged_ort'] )
+        
+        
         
     print("Finished trials of parameter") #: ", param[2])
         
