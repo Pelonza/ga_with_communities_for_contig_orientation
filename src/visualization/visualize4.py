@@ -40,12 +40,12 @@ Files visualized in script 4:
 
 from bokeh.plotting import figure, output_file, show
 from bokeh.layouts import row, column, gridplot
-import bokeh.palettes as pal
 from bokeh.palettes import d3
 import json
 import os
 import numpy as np
-
+import networkx as nx
+import igraph as ig
 
 def get_parser():
     """Get parser object for script xy.py."""
@@ -95,6 +95,97 @@ def is_valid_file(parser, arg):
         parser.error("The file %s does not exist!" % arg)
     else:
         return arg
+    
+def Internal_External(myG, myClusters, InOrt):
+    #  This function will return the internal/external mate-pairs for
+    #  each cluster, based on the input orientation.
+    intercluster = myClusters.crossing()
+    
+    num_cluster = np.max(myClusters.membership)+1
+ 
+    imean = [None]*len(InOrt)
+    emean = [None]*len(InOrt)
+    
+    for j in range(len(InOrt)):
+        CurrOrt = InOrt[j]
+    
+        cluster_score = dict(igood=[False]*num_cluster, ibad=[False]*num_cluster,
+                             egood=[False]*num_cluster, ebad=[False]*num_cluster,
+                             ifit =[False]*num_cluster, efit=[False]*num_cluster)
+        for edge in myG.es:
+            #  Split inner/outer based on crossing true/false.
+            if intercluster[edge.index]: # External Edges
+                #  Check orientations to correctly use edge weights.
+                if CurrOrt[edge.source] == CurrOrt[edge.target]:
+                    cluster_score["egood"][myClusters.membership[edge.source]]+=edge["w1"]
+                    cluster_score["egood"][myClusters.membership[edge.target]]+=edge["w1"]
+                    cluster_score["ebad"][myClusters.membership[edge.source]]+=edge["w2"]
+                    cluster_score["ebad"][myClusters.membership[edge.target]]+=edge["w2"]
+                else:
+                    cluster_score["egood"][myClusters.membership[edge.source]]+=edge["w2"]
+                    cluster_score["egood"][myClusters.membership[edge.target]]+=edge["w2"]
+                    cluster_score["ebad"][myClusters.membership[edge.source]]+=edge["w1"]
+                    cluster_score["ebad"][myClusters.membership[edge.target]]+=edge["w1"]                
+            else: # Internal Edges
+                #  Check orientations to correctly use edge weights.
+                if CurrOrt[edge.source] == CurrOrt[edge.target]:
+                    cluster_score["igood"][myClusters.membership[edge.source]]+=edge["w1"]
+                    cluster_score["igood"][myClusters.membership[edge.target]]+=edge["w1"]
+                    cluster_score["ibad"][myClusters.membership[edge.source]]+=edge["w2"]
+                    cluster_score["ibad"][myClusters.membership[edge.target]]+=edge["w2"]
+                else:
+                    cluster_score["igood"][myClusters.membership[edge.source]]+=edge["w2"]
+                    cluster_score["igood"][myClusters.membership[edge.target]]+=edge["w2"]
+                    cluster_score["ibad"][myClusters.membership[edge.source]]+=edge["w1"]
+                    cluster_score["ibad"][myClusters.membership[edge.target]]+=edge["w1"]                
+
+                
+        
+        for i in range(num_cluster):
+            # Denominators split for line-length.
+            tmp_denom = (cluster_score["igood"][i]+cluster_score["ibad"][i])
+            if tmp_denom != 0 :
+                cluster_score["ifit"][i] = cluster_score["igood"][i]/ tmp_denom
+            else:
+                cluster_score["ifit"][i] = np.NaN
+            
+            tmp_denom = (cluster_score["egood"][i]+cluster_score["ebad"][i])
+            if tmp_denom != 0 :
+                cluster_score["efit"][i] = cluster_score["egood"][i]/ tmp_denom
+            else:
+                cluster_score["efit"][i] = np.NaN
+        
+        imean[j] = np.mean(cluster_score["ifit"])
+        emean[j] = np.mean(cluster_score["efit"])     
+        
+        print("Finished scoring orientation ", str(j))
+        
+    return list([imean, emean])
+
+def load_data(input_filename):
+    # Read in tally file, assuming a 6-column format, no duplicated edges
+    G = nx.read_edgelist(input_filename, nodetype=int,
+                         data=(('w1', int), ('w2', int), ('w3', int),
+                               ('w4', int)))
+
+    # Set all edges to 'flipable' -- To be modified later if non-flippable.
+    nx.set_node_attributes(G, 'flippable', True)
+    
+    # Write to GML then load as an igraph graph for faster computations on
+    # other elementals.
+    nx.write_gml(G, "tally.gml")
+    ig_G = ig.Graph()
+    ig_G = ig_G.Read_GML("tally.gml")
+
+    
+    for edge in range(ig_G.ecount()):
+        # Define an additional edge attribute of total pairs
+        ig_G.es[edge]['mates'] = ig_G.es[edge]['w1'] + ig_G.es[edge]['w2'] 
+        # If col3/4 included    # + ig_G.es[edge]['w3'] + ig_G.es[edge]['w4'])
+
+    #Initial_matepairs = compute_initial_pairs(ig_G)
+        
+    return ig_G
 # %%
 if __name__ == "__main__":
     
@@ -102,10 +193,25 @@ if __name__ == "__main__":
     args = get_parser().parse_args()
     output_file("test4.html")
 
+    # Load the turkey orientations and compute clusters for them.
+    G_full = load_data('../../data/raw/Turkey/orientations_tallies')
+    G_full_dendrogram = G_full.community_fastgreedy(weights="mates")
+    G_full_clusters = G_full_dendrogram.as_clustering()
+    #G_comm = G_full_clusters.cluster_graph(combine_edges=sum)
+
     # Plot the two-stage version, GA then Comm
     f = open('../../data/interim/turkey_twostage_full.stat')
     twostage = json.load(f)
     f.close()
+    
+    # Get list of GA orientations
+    ga_orts = [ twostage[k][0]['tbort'] for k in range(len(twostage))]
+    ga_cls_scr = map(Internal_External, ga_orts)  #  This should generate cluster scores for each best orientation
+    
+    mrg_orts = [ twostage[k][2]['merged_ort'] for k in range(len(twostage))]
+    mrg_cls_scr = map(Internal_External, mrg_orts)  # This should generate cluster scores for each merged orientation
+    
+    
     
     # Note: If I make the ranges dynamic based on the runs, I can reuse these
     # no matter how many trials I do.... 
