@@ -26,10 +26,12 @@ Files visualized in script 2:
     mouse_mutidpb_2d5_15_by_2d5.stat
     mouse_2xswp_15_30mut_20_30cx.stat
     mouse_2xswp_15_40mut_15_35cx.stat
+    
+Files visualized in script 3:
     mouse_twostage_full.stat
     mouse_twostage_full_cmga.stat
-    
-Files to be visualized yet:    
+
+Files visualized in script 4:
     turkey_longGA_(A/B/C).stat
     turkey_twostage_cmga_(A/B/C).stat
     turkey_twostage_full.stat
@@ -98,72 +100,7 @@ if __name__ == "__main__":
     
     
     args = get_parser().parse_args()
-    output_file("test2.html")
-    #Open additional mutid plots and add them.
-    f = open('../../data/interim/mouse_mutidpb_2d5_15_by_2d5_comm.stat','r')
-    More_mutidcomm = json.load(f)
-    f.close()
-    
-    f = open('../../data/interim/mouse_mutidpb_2d5_15_by_2d5.stat','r')
-    More_mutid = json.load(f)
-    f.close()
-
-    mutid_comm_extr = figure(title="Finer Sweep of Independent Mutation on Communities")
-    mutid_extr = figure(title="Finer Sweep of Independent Mutation")
-    for j in range(0,12,2):
-        df_extraC = [More_mutidcomm[j][k]['tmax'] for k in range(25)]
-        df_extraC = df_extraC + [More_mutidcomm[j+1][k]['tmax'] for k in range(25)]
-        avg_tmax_extraC = (np.mean(df_extraC, axis=0)).tolist()
-        mutid_comm_extr.line(More_mutidcomm[0][0]['tgen'], avg_tmax_extraC,
-                          legend = "Ind. Mut. = "+str(More_mutidcomm[j][0]['tparam'][4]),
-                          line_color=d3['Category20'][12][j], alpha = 1)
-        
-        df_extra = [More_mutid[j][k]['tmax'] for k in range(25)]
-        df_extra = df_extra + [More_mutid[j+1][k]['tmax'] for k in range(25)]
-        avg_tmax_extra = (np.mean(df_extra, axis=0)).tolist()
-        mutid_extr.line(More_mutid[0][0]['tgen'], avg_tmax_extra,
-                          legend = "Ind. Mut. = "+str(More_mutid[j][0]['tparam'][4]),
-                          line_color=d3['Category20'][12][j], alpha = 1)
-    
-    # Load 2x Parameter sweeps. These are funny indexing!
-    f = open('../../data/interim/mouse_2xswp_15_30mut_20_30cx.stat','r')
-    swp2x_A_df = json.load(f)
-    f.close()
-
-    f = open('../../data/interim/mouse_2xswp_15_40mut_15_35cx.stat','r')
-    swp2x_B_df = json.load(f)
-    f.close()
-
-    swp2x_fig = figure(title = "Sweeping Two Parameters")
-    for j in range(3):
-        df = [swp2x_A_df[j][k]['tmax'] for k in range(50)]
-        avg_tmax = (np.mean(df, axis=0)).tolist()
-        swp2x_fig.line(swp2x_A_df[0][0]['tgen'], avg_tmax, 
-                       legend="Cx. = "+str(swp2x_A_df[j][0]['tparam'][3])
-                       +" Mut. = "+str(swp2x_A_df[j][0]['tparam'][2]),
-                       line_color= d3['Category20'][20][j],
-                       muted_alpha=0.2, alpha=1)
-
-    for j in range(15):
-        df = [swp2x_B_df[j][k]['tmax'] for k in range(50)]
-        avg_tmax = (np.mean(df, axis=0)).tolist()
-        swp2x_fig.line(swp2x_B_df[0][0]['tgen'], avg_tmax, 
-                       legend="Cx. = "+str(swp2x_B_df[j][0]['tparam'][3])
-                       +" Mut. = "+str(swp2x_B_df[j][0]['tparam'][2]),
-                       line_color= d3['Category20'][20][j+3],
-                       muted_alpha=0.2, alpha=1)
-        
-        
-    #  Move all the legends and set the interactions to hide unwanted lines.    
-    mutid_comm_extr.legend.location = "bottom_right"
-    mutid_comm_extr.legend.click_policy = "hide"    
-    
-    mutid_extr.legend.location = "bottom_right"
-    mutid_extr.legend.click_policy = "hide"    
-
-    swp2x_fig.legend.location = "bottom_right"
-    swp2x_fig.legend.click_policy = "hide"    
-
+    output_file("test4.html")
 
     # Plot the two-stage version, GA then Comm
     f = open('../../data/interim/mouse_twostage_full.stat')
@@ -189,6 +126,8 @@ if __name__ == "__main__":
                    " , Cx = "+str(twostage[0][1]['tparam'][3]),
                    line_color = d3['Category20'][3][2])
     
+    gagrp_fig.legend.location = "bottom_right"
+    gagrp_fig.legend.click_policy = "mute"
     
     # Plot the two-stage version, Comm then GA
     f = open('../../data/interim/mouse_twostage_full_cmga.stat')
@@ -213,8 +152,47 @@ if __name__ == "__main__":
                    "GA-Comm - Mut. = "+str(twostage[0][1]['tparam'][2])+
                    " , Cx = "+str(twostage[0][1]['tparam'][3]),
                    line_color = d3['Category20'][3][2])
+
+    grpga_fig.legend.location = "bottom_right"
+    grpga_fig.legend.click_policy = "mute"
     
-    show(gridplot([[mutid_extr, mutid_comm_extr],
-                   [swp2x_fig, None],
+    f=open('../../data/interim/mouse_longGA.stphy','r')
+    mlong = json.load(f)
+    f.close()
+    
+    mlong_fig = figure(title = "High Generation GA on Mouse")
+    dflong = [mlong[k][0]['tmax'] for k in range(50)]
+    avg_max_long = (np.mean(dflong, axis=0).tolist())
+    mlong_fig.line(mlong[0][0]['tgen'], avg_max_long,
+               legend = "Mut. = "+str(mlong[0][0]['tparam'][2]) +
+               " , Cx. = "+str(mlong[0][0]['tparam'][3]))
+    
+    mlong_fig.legend.location = "bottom_right"
+    
+    f=open('../../data/interim/turkey_longGA_A.stat','r')
+    tlonga = json.load(f)
+    f.close()
+    tmp = [ [tlonga[k][2][j]['max'] for j in range(10001)] for k in range(16)]
+    
+    f=open('../../data/interim/turkey_longGA_B.stat','r')
+    tlongb = json.load(f)
+    f.close()
+    tmp = tmp + [ [tlongb[k][2][j]['max'] for j in range(10001)] for k in range(16)]
+    
+    f=open('../../data/interim/turkey_longGA_C.stat','r')
+    tlongc = json.load(f)
+    f.close()
+    tlong = tmp + [ [tlongc[k][2][j]['max'] for j in range(10001)] for k in range(16)]
+
+    tlong_fig = figure(title = "High Generation GA on Turkey")
+    avg_max_long = (np.mean(tlong, axis=0).tolist())
+    xdata = [ tlonga[0][2][j]['gen'] for j in range(10001)]
+    tlong_fig.line(xdata, avg_max_long,
+               legend = "Mut. = 0.3" + " , Cx. = 0.9")
+    
+    tlong_fig.legend.location = "bottom_right"
+
+
+    show(gridplot([[tlong_fig, None],
                    [gagrp_fig, grpga_fig]]))
 #    show(column(cxfig, mut_fig, mut_comfig, mutidfig, mutid_comfig) )  
