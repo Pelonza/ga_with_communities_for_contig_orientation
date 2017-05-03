@@ -46,6 +46,7 @@ import os
 import numpy as np
 import networkx as nx
 import igraph as ig
+import pickle
 
 def get_parser():
     """Get parser object for script xy.py."""
@@ -154,11 +155,12 @@ def Internal_External(myG, myClusters, InOrt):
                 cluster_score["efit"][i] = cluster_score["egood"][i]/ tmp_denom
             else:
                 cluster_score["efit"][i] = np.NaN
+        # End loop over num_clusters
         
-        imean[j] = np.mean(cluster_score["ifit"])
-        emean[j] = np.mean(cluster_score["efit"])     
+        imean[j] = np.nanmean(cluster_score["ifit"])
+        emean[j] = np.nanmean(cluster_score["efit"])     
         
-        print("Finished scoring orientation ", str(j))
+        print("Finished scoring orientation "+str(j))
         
     return list([imean, emean])
 
@@ -205,11 +207,26 @@ if __name__ == "__main__":
     f.close()
     
     # Get list of GA orientations
-    ga_orts = [ twostage[k][0]['tbort'] for k in range(len(twostage))]
-    ga_cls_scr = map(Internal_External, ga_orts)  #  This should generate cluster scores for each best orientation
+    #  Computing these was super slow... so just import the pickled file?
+    # ga_orts = [ twostage[k][0]['tbort'] for k in range(len(twostage))]
+    # ga_cls_scr = Internal_External(G_full, G_full_clusters, ga_orts)  #  This should generate cluster scores for each best orientation
+    # mrg_orts = [ twostage[k][2]['merged_ort'] for k in range(len(twostage))]
+    # mrg_cls_scr = Internal_External(G_full, G_full_clusters, mrg_orts)  # This should generate cluster scores for each merged orientation
+
+
     
-    mrg_orts = [ twostage[k][2]['merged_ort'] for k in range(len(twostage))]
-    mrg_cls_scr = map(Internal_External, mrg_orts)  # This should generate cluster scores for each merged orientation
+    f = open("../../data/interim/turkey_gacm_ga_cls_scr",'rb')
+    ga_cls_scr = pickle.load(f)
+    f.close()
+
+    f = open("../../data/interim/turkey_gacm_mrg_cls_scr",'rb')
+    mrg_cls_scr = pickle.load(f)
+    f.close()
+    
+    tgacm_ga_imean = np.mean(ga_cls_scr[0])
+    tgacm_ga_emean = np.mean(ga_cls_scr[1])
+    tgacm_mrg_imean = np.mean(mrg_cls_scr[0])
+    tgacm_mrg_emean = np.mean(mrg_cls_scr[1])
     
     
     
@@ -246,6 +263,8 @@ if __name__ == "__main__":
     
     df_2stage = [ twostage[k][0]['tmax'] for k in range(16)]
     df_2stage_grp = [twostage[k][1]['tmax'] for k in range(16)]
+    cm_cls_scr = [ twostage[k][2]['postcommclsscr'] for k in range(len(twostage))]
+    ga_cls_scr = [ twostage[k][2]['postgaclsscr'] for k in range(len(twostage))]
     
     f = open('../../data/interim/turkey_twostage_cmga_B.stat')
     twostage = json.load(f)
@@ -253,6 +272,8 @@ if __name__ == "__main__":
     
     df_2stage = df_2stage + [ twostage[k][0]['tmax'] for k in range(16)]
     df_2stage_grp = df_2stage_grp + [twostage[k][1]['tmax'] for k in range(16)]
+    cm_cls_scr = cm_cls_scr + [ twostage[k][2]['postcommclsscr'] for k in range(len(twostage))]
+    ga_cls_scr = ga_cls_scr + [ twostage[k][2]['postgaclsscr'] for k in range(len(twostage))]
     
     f = open('../../data/interim/turkey_twostage_cmga_C.stat')
     twostage = json.load(f)
@@ -260,6 +281,19 @@ if __name__ == "__main__":
     
     df_2stage = df_2stage + [ twostage[k][0]['tmax'] for k in range(16)]
     df_2stage_grp = df_2stage_grp + [twostage[k][1]['tmax'] for k in range(16)]        
+    cm_cls_scr = cm_cls_scr + [ twostage[k][2]['postcommclsscr'] for k in range(len(twostage))]
+    ga_cls_scr = ga_cls_scr + [ twostage[k][2]['postgaclsscr'] for k in range(len(twostage))]
+
+    ifit_tmp = [ cm_cls_scr[k]['ifit'] for k in range(len(cm_cls_scr))]
+    efit_tmp = [ cm_cls_scr[k]['efit'] for k in range(len(cm_cls_scr))]
+    tcmga_mrg_imean = np.nanmean(ifit_tmp)
+    tcmga_mrg_emean = np.nanmean(efit_tmp)
+    
+    
+    ifit_tmp = [ ga_cls_scr[k]['ifit'] for k in range(len(ga_cls_scr))]
+    efit_tmp = [ ga_cls_scr[k]['efit'] for k in range(len(ga_cls_scr))]
+    tcmga_ga_imean = np.nanmean(ifit_tmp)
+    tcmga_ga_emean = np.nanmean(efit_tmp)
 
     avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
     avg_tmax_2stg_grp = (np.mean(df_2stage_grp, axis=0).tolist())

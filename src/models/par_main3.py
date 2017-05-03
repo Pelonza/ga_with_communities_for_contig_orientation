@@ -247,7 +247,10 @@ def Internal_External(myG, myClusters, CurrOrt):
             cluster_score["efit"][i] = cluster_score["egood"][i]/ tmp_denom
         else:
             cluster_score["efit"][i] = np.NaN
-            
+    
+    cluster_score["emean"] = np.nanmean(cluster_score["efit"])
+    cluster_score["imean"] = np.nanmean(cluster_score["ifit"])
+        
     return cluster_score
 
 def trials(allparam):
