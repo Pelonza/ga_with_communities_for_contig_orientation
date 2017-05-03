@@ -436,8 +436,6 @@ def one_series_trial_GA_CM(allparam):
                          postgaclsscr = tmp_gaclsscr,
                          order = "Comm - GA")
     
-    param_logbook.record(merged_ort = final_ort)
-    
     print("Finished trial")
     return param_logbook
 
