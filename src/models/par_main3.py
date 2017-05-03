@@ -531,11 +531,7 @@ if __name__ == "__main__":
     #global G_global  # Allow G_global to be modified in this script.
 
     args = get_parser().parse_args()
-<<<<<<< Updated upstream
     random.seed(args.rseed)  # For testing/reproducibility.
-=======
-    random.seed(3)  # For testing/reproducibility.
->>>>>>> Stashed changes
     
     #pool = multiprocessing.Pool()
     #toolbox.register("map", pool.map)
@@ -639,10 +635,10 @@ if __name__ == "__main__":
             if args.type == '2':
                 # Only ran the GA
                 # Run_GA returns : pop, tbestort, tlogbook
-                print(nodeort)
-                print(full_logbook[i][1])
+#                print(nodeort)
+#                print(full_logbook[i][1])
                 merge_ort(nodeort, full_logbook[i][1], full_logbook[i][1])
-                print(full_logbook[i][1])
+#                print(full_logbook[i][1])
             elif (args.type == '3' or args.type == '4'):
                 # Ran a two-stage
                 merge_ort(nodeort, full_logbook[i][2]['merged_ort'], full_logbook[i][2]['merged_ort'] )
