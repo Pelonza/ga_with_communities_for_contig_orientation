@@ -107,7 +107,7 @@ if __name__ == "__main__":
     twostage = json.load(f)
     f.close()
     
-    gagrp_fig = figure(title = "GA with GA-Comm")
+    gagrp_fig = figure(title = "Mouse GA with GA-Comm")
     df_2stage = [ twostage[k][0]['tmax'] for k in range(50)]
     df_2stage_grp = [twostage[k][1]['tmax'] for k in range(50)]
     avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
@@ -134,7 +134,7 @@ if __name__ == "__main__":
     twostage = json.load(f)
     f.close()
     
-    grpga_fig = figure(title = "Comm-GA with GA")
+    grpga_fig = figure(title = "Mouse Comm-GA with GA")
     df_2stage = [ twostage[k][0]['tmax'] for k in range(50)]
     df_2stage_grp = [twostage[k][1]['tmax'] for k in range(50)]
     avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())

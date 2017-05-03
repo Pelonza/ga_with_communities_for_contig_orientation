@@ -103,11 +103,13 @@ if __name__ == "__main__":
     output_file("test4.html")
 
     # Plot the two-stage version, GA then Comm
-    f = open('../../data/interim/mouse_twostage_full.stat')
+    f = open('../../data/interim/turkey_twostage_full.stat')
     twostage = json.load(f)
     f.close()
     
-    gagrp_fig = figure(title = "GA with GA-Comm")
+    # Note: If I make the ranges dynamic based on the runs, I can reuse these
+    # no matter how many trials I do.... 
+    gagrp_fig = figure(title = "Turkey GA with GA-Comm")
     df_2stage = [ twostage[k][0]['tmax'] for k in range(50)]
     df_2stage_grp = [twostage[k][1]['tmax'] for k in range(50)]
     avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
@@ -130,13 +132,29 @@ if __name__ == "__main__":
     gagrp_fig.legend.click_policy = "mute"
     
     # Plot the two-stage version, Comm then GA
-    f = open('../../data/interim/mouse_twostage_full_cmga.stat')
+    grpga_fig = figure(title = "Turkey Comm-GA with GA")
+        
+    f = open('../../data/interim/turkey_twostage_cmga_A.stat')
     twostage = json.load(f)
     f.close()
     
-    grpga_fig = figure(title = "Comm-GA with GA")
-    df_2stage = [ twostage[k][0]['tmax'] for k in range(50)]
-    df_2stage_grp = [twostage[k][1]['tmax'] for k in range(50)]
+    df_2stage = [ twostage[k][0]['tmax'] for k in range(16)]
+    df_2stage_grp = [twostage[k][1]['tmax'] for k in range(16)]
+    
+    f = open('../../data/interim/turkey_twostage_cmga_B.stat')
+    twostage = json.load(f)
+    f.close()
+    
+    df_2stage = df_2stage + [ twostage[k][0]['tmax'] for k in range(16)]
+    df_2stage_grp = df_2stage_grp + [twostage[k][1]['tmax'] for k in range(16)]
+    
+    f = open('../../data/interim/turkey_twostage_cmga_C.stat')
+    twostage = json.load(f)
+    f.close()
+    
+    df_2stage = df_2stage + [ twostage[k][0]['tmax'] for k in range(16)]
+    df_2stage_grp = df_2stage_grp + [twostage[k][1]['tmax'] for k in range(16)]        
+
     avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
     avg_tmax_2stg_grp = (np.mean(df_2stage_grp, axis=0).tolist())
     xdata = twostage[0][0]['tgen']
@@ -155,19 +173,6 @@ if __name__ == "__main__":
 
     grpga_fig.legend.location = "bottom_right"
     grpga_fig.legend.click_policy = "mute"
-    
-    f=open('../../data/interim/mouse_longGA.stphy','r')
-    mlong = json.load(f)
-    f.close()
-    
-    mlong_fig = figure(title = "High Generation GA on Mouse")
-    dflong = [mlong[k][0]['tmax'] for k in range(50)]
-    avg_max_long = (np.mean(dflong, axis=0).tolist())
-    mlong_fig.line(mlong[0][0]['tgen'], avg_max_long,
-               legend = "Mut. = "+str(mlong[0][0]['tparam'][2]) +
-               " , Cx. = "+str(mlong[0][0]['tparam'][3]))
-    
-    mlong_fig.legend.location = "bottom_right"
     
     f=open('../../data/interim/turkey_longGA_A.stat','r')
     tlonga = json.load(f)
