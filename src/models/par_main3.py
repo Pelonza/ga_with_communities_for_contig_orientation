@@ -432,8 +432,8 @@ def one_series_trial_GA_CM(allparam):
         final_ort[i] = tbestort[G_full_clusters.membership[i]]^full_best_ort[i]
     
     # Get and store cluster-fitness scores.
-    tmp_clusterscr = Internal_External(G_full, G_full_clusters, full_best_ort)
-    tmp_gaclsscr = Internal_External(G_full, G_full_clusters, final_ort)
+    tmp_clusterscr = Internal_External(myG, G_full_clusters, full_best_ort)
+    tmp_gaclsscr = Internal_External(myG, G_full_clusters, final_ort)
     param_logbook.record(merged_ort = final_ort, 
                          postcommclsscr = tmp_clusterscr,
                          postgaclsscr = tmp_gaclsscr,
