@@ -305,7 +305,7 @@ def Run_GA(inparams):
     toolbox.register("population", tools.initRepeat, list,
                      toolbox.individual)
     toolbox.register("orient", tools.initRepeat, creator.Individual,
-                 int, n=G_full.vcount())
+                 int, n=G.vcount())
         
     toolbox.register("population_def", tools.initRepeat, list, toolbox.orient)
     toolbox.register("evaluate", evaluate, G=G,
@@ -316,8 +316,7 @@ def Run_GA(inparams):
     
     hof_local.clear()
     
-    pop = toolbox.population(n=POP_SIZE/2) + toolbox.population_def(n=POP_SIZE/2)
-    print(pop)
+    pop = toolbox.population(n=POP_SIZE//2) + toolbox.population_def(n=POP_SIZE//2)
     pop, tlogbook = algorithms.eaSimple(pop, toolbox, cxpb=CX_PB, mutpb=MUT_PB,
                                         ngen=NGEN, stats=stats,
                                         halloffame=hof_local,
