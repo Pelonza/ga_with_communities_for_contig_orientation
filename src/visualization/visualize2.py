@@ -26,8 +26,12 @@ Files visualized in script 2:
     mouse_mutidpb_2d5_15_by_2d5.stat
     mouse_2xswp_15_30mut_20_30cx.stat
     mouse_2xswp_15_40mut_15_35cx.stat
+    mouse_2xswp_30_50mut_35_50cx.stat
+    
+Files visualized in script 3:
     mouse_twostage_full.stat
     mouse_twostage_full_cmga.stat
+    mouse_longGA.stphy
     
 Files to be visualized yet:    
     turkey_longGA_(A/B/C).stat
@@ -134,7 +138,7 @@ if __name__ == "__main__":
     swp2x_B_df = json.load(f)
     f.close()
 
-    swp2x_fig = figure(title = "Sweeping Two Parameters")
+    swp2x_fig = figure(title = "Sweeping Two Parameters - Mouse")
     for j in range(3):
         df = [swp2x_A_df[j][k]['tmax'] for k in range(50)]
         avg_tmax = (np.mean(df, axis=0)).tolist()
@@ -149,9 +153,30 @@ if __name__ == "__main__":
         avg_tmax = (np.mean(df, axis=0)).tolist()
         swp2x_fig.line(swp2x_B_df[0][0]['tgen'], avg_tmax, 
                        legend="Cx. = "+str(swp2x_B_df[j][0]['tparam'][3])
-                       +" Mut. = "+str(swp2x_B_df[j][0]['tparam'][2]),
+                       +" Mut. = "+str(swp2x_B_df[j][0]['tparam'][2])+
+                       "Id. Mut. = "+str(swp2x_B_df[j][0]['tparam'][4]),
                        line_color= d3['Category20'][20][j+3],
                        muted_alpha=0.2, alpha=1)
+        
+    f = open('../../data/interim/mouse_2xswp_30_50mut_35_50cx.stat','r')
+    swp2x_C_df = json.load(f)
+    f.close()
+
+    swp2xB_fig = figure(title = "Sweeping Two Parameters B- Mouse")
+    for j in range(20):
+        df = [swp2x_C_df[j][k]['tmax'] for k in range(len(swp2x_C_df[0][0]))]
+        avg_tmax = (np.mean(df, axis=0)).tolist()
+        swp2xB_fig.line(swp2x_C_df[0][0]['tgen'], avg_tmax, 
+                       legend="Cx. = "+str(swp2x_C_df[j][0]['tparam'][3])
+                       +" Mut. = "+str(swp2x_C_df[j][0]['tparam'][2]),
+                       line_color= d3['Category20'][20][j],
+                       muted_alpha=0.2, alpha=1)
+#        swp2x_fig.line(swp2x_C_df[0][0]['tgen'], avg_tmax, 
+#                       legend="Cx. = "+str(swp2x_C_df[j][0]['tparam'][3])
+#                       +" Mut. = "+str(swp2x_C_df[j][0]['tparam'][2])+
+#                       "Id. Mut. = "+str(swp2x_C_df[j][0]['tparam'][4]),
+#                       line_color= d3['Category20'][20][j],
+#                       muted_alpha=0.2, alpha=1)
         
         
     #  Move all the legends and set the interactions to hide unwanted lines.    
@@ -164,57 +189,9 @@ if __name__ == "__main__":
     swp2x_fig.legend.location = "bottom_right"
     swp2x_fig.legend.click_policy = "hide"    
 
-
-    # Plot the two-stage version, GA then Comm
-    f = open('../../data/interim/mouse_twostage_full.stat')
-    twostage = json.load(f)
-    f.close()
-    
-    gagrp_fig = figure(title = "GA with GA-Comm")
-    df_2stage = [ twostage[k][0]['tmax'] for k in range(50)]
-    df_2stage_grp = [twostage[k][1]['tmax'] for k in range(50)]
-    avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
-    avg_tmax_2stg_grp = (np.mean(df_2stage_grp, axis=0).tolist())
-    xdata = twostage[0][0]['tgen']
-    xdata_grp = [ (twostage[0][1]['tgen'][k]+len(xdata)) for k in range(len(twostage[0][1]['tgen'])) ]
-    #xdata = xdata + tmpx
-    gagrp_fig.line(xdata, avg_tmax_2stg,
-                   legend = 
-                   "GA - Mut. = "+str(twostage[0][0]['tparam'][2])+
-                   " , Cx = "+str(twostage[0][0]['tparam'][3]),
-                   line_color = d3['Category20'][3][0])
-    gagrp_fig.line(xdata_grp, avg_tmax_2stg_grp,
-                   legend =
-                   "GA-Comm - Mut. = "+str(twostage[0][1]['tparam'][2])+
-                   " , Cx = "+str(twostage[0][1]['tparam'][3]),
-                   line_color = d3['Category20'][3][2])
-    
-    
-    # Plot the two-stage version, Comm then GA
-    f = open('../../data/interim/mouse_twostage_full_cmga.stat')
-    twostage = json.load(f)
-    f.close()
-    
-    grpga_fig = figure(title = "Comm-GA with GA")
-    df_2stage = [ twostage[k][0]['tmax'] for k in range(50)]
-    df_2stage_grp = [twostage[k][1]['tmax'] for k in range(50)]
-    avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
-    avg_tmax_2stg_grp = (np.mean(df_2stage_grp, axis=0).tolist())
-    xdata = twostage[0][0]['tgen']
-    xdata_grp = [ (twostage[0][1]['tgen'][k]+len(xdata)) for k in range(len(twostage[0][1]['tgen'])) ]
-    #xdata = xdata + tmpx
-    grpga_fig.line(xdata, avg_tmax_2stg,
-                   legend = 
-                   "GA - Mut. = "+str(twostage[0][0]['tparam'][2])+
-                   " , Cx = "+str(twostage[0][0]['tparam'][3]),
-                   line_color = d3['Category20'][3][0])
-    grpga_fig.line(xdata_grp, avg_tmax_2stg_grp,
-                   legend =
-                   "GA-Comm - Mut. = "+str(twostage[0][1]['tparam'][2])+
-                   " , Cx = "+str(twostage[0][1]['tparam'][3]),
-                   line_color = d3['Category20'][3][2])
+    swp2xB_fig.legend.location = "bottom_right"
+    swp2xB_fig.legend.click_policy = "hide"
     
     show(gridplot([[mutid_extr, mutid_comm_extr],
-                   [swp2x_fig, None],
-                   [gagrp_fig, grpga_fig]]))
+                   [swp2x_fig, swp2xB_fig]]))
 #    show(column(cxfig, mut_fig, mut_comfig, mutidfig, mutid_comfig) )  

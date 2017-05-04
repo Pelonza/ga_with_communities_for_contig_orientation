@@ -26,10 +26,12 @@ Files visualized in script 2:
     mouse_mutidpb_2d5_15_by_2d5.stat
     mouse_2xswp_15_30mut_20_30cx.stat
     mouse_2xswp_15_40mut_15_35cx.stat
+    mouse_2xswp_30_50mut_35_50cx.stat
     
 Files visualized in script 3:
     mouse_twostage_full.stat
     mouse_twostage_full_cmga.stat
+    mouse_longGA.stphy
 
 Files to be visualized yet:
     turkey_longGA_(A/B/C).stat
