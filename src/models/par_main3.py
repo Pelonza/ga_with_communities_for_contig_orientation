@@ -44,6 +44,7 @@ toolbox = base.Toolbox()
 toolbox.register("attr_bool", random.randint, 0, 1)
 toolbox.register("select", tools.selTournament, tournsize=3)
 
+
 # Making a global i-graphs to hold data for all workers to reduce overhead
 # Only using one to preserve reusuability of trials function.
 #global G_global
@@ -303,6 +304,7 @@ def Run_GA(inparams):
                      toolbox.attr_bool, n=IND_SIZE)
     toolbox.register("population", tools.initRepeat, list,
                      toolbox.individual)
+    toolbox.register("population_def", tools.initRepeat, list, toolbox.orient)
     toolbox.register("evaluate", evaluate, G=G,
                      Init_pairs=Init_mps)
     #toolbox.register("mate", tools.cxUniform, indpb=CX_IDPB)
@@ -311,7 +313,8 @@ def Run_GA(inparams):
     
     hof_local.clear()
     
-    pop = toolbox.population(n=POP_SIZE)
+    pop = toolbox.population(n=POP_SIZE/2) + toolbox.population_def(n=POP_SIZE/2)
+    print(pop)
     pop, tlogbook = algorithms.eaSimple(pop, toolbox, cxpb=CX_PB, mutpb=MUT_PB,
                                         ngen=NGEN, stats=stats,
                                         halloffame=hof_local,
@@ -560,6 +563,7 @@ if __name__ == "__main__":
     
     toolbox.register("orient", tools.initRepeat, creator.Individual,
                  int, n=G_full.vcount())
+    #toolbox.register("population_guess", initPopulation, list, creator.Individual, [False]*)
     
     base_orient = toolbox.orient()  # For storing the original orientation(s)
     tmp_orient = toolbox.orient()   # For use in merging/swapping orientations.
