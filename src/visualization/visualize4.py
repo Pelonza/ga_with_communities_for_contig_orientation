@@ -303,23 +303,22 @@ if __name__ == "__main__":
     
     p = figure(x_axis_label = 'Average External Fitness', y_axis_label = 'Average Internal Fitness')
 
-    # Plot the two-stage version, GA then Comm
-    df = load('../../data/test/turk_nc.stat')
-    df += load('../../data/interim/turkey_preort_cmga_B.stat')
+    # Add the preoriented Comm-GA point.
+    df = load('../../data/turkey_prcmga.sat')
+    #df += load('../../data/interim/turkey_preort_cmga_B.stat')
     
     cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(2) ] #range(len(df))]
     append_data(cls_scr, xdata, ydata)
     labels += ['Node-Centric with Comm - GA']
     color += [d3['Category20'][20][0]]
     
-#    #  Add the Preoriented ga-comm data point.
-#    df = load('../../data/interim/turkey_preot_gacm_A.stat')
-#    df += load('../../data/interim/turkey_preort_gacm_B.stat')
-#    
-#    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(2) ] #range(len(df))]
-#    append_data(cls_scr, xdata, ydata)
-#    labels += ['Node-Centric with GA-Comm']
-#    color += [d3['Category20'][20][1]]
+    #  Add the Preoriented ga-comm data point.
+    df = load('../../data/turkey_prgacm.stat')
+        
+    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(2) ] #range(len(df))]
+    append_data(cls_scr, xdata, ydata)
+    labels += ['Node-Centric with GA-Comm']
+    color += [d3['Category20'][20][1]]
 #    
 #    #  Add the preoriented ga point.
 #    df = load('../../data/interim/turkey_preort_ga_A.stat')
@@ -330,32 +329,30 @@ if __name__ == "__main__":
 #    labels += ['Node-Centric with GA']
 #    color += [d3['Category20'][20][2]]
 #    
-#    # Add the Comm-GA point
-#    df = load('../../data/interim/turkey_cmga_A2.stat')
-#    df += load('../../data/interim/turkey_cmga_B2.stat')
-#    
-#    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(2) ] #range(len(df))]
-#    append_data(cls_scr, xdata, ydata)
-#    labels += ['Comm - GA']
-#    color += [d3['Category20'][20][3]]
-#    
-#    #  Add the Preoriented ga-comm data point.
-#    df = load('../../data/interim/turkey_gacm_B3.stat')
-#    df += load('../../data/interim/turkey_gacm_B4.stat')
-#    
-#    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(2) ] #range(len(df))]
-#    append_data(cls_scr, xdata, ydata)
-#    labels += ['GA-Comm']
-#    color += [d3['Category20'][20][4]]
-#
-#    #  Add the preoriented ga point.
-#    df = load('../../data/interim/turkey_longGA_A.stat')
-#    df += load('../../data/interim/turkey_longGA_B.stat')
-#    
-#    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][1]) for k in range(2) ] #range(len(df))]
-#    append_data(cls_scr, xdata, ydata)
-#    labels += ['GA']
-#    color += [d3['Category20'][20][5]]
+    # Add the Comm-GA point
+    df = load('../../data/turkey_cmga.stat')
+        
+    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(2) ] #range(len(df))]
+    append_data(cls_scr, xdata, ydata)
+    labels += ['Comm - GA']
+    color += [d3['Category20'][20][3]]
+    
+    #  Add the ga-comm data point.
+    df = load('../../data/turkey_gacm.stat')
+    
+    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(2) ] #range(len(df))]
+    append_data(cls_scr, xdata, ydata)
+    labels += ['GA-Comm']
+    color += [d3['Category20'][20][4]]
+
+    #  Add the preoriented ga point.
+    df = load('../../data/interim/turkey_longGA_A.stat')
+    df += load('../../data/interim/turkey_longGA_B.stat')
+    
+    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][1]) for k in range(2) ] #range(len(df))]
+    append_data(cls_scr, xdata, ydata)
+    labels += ['GA']
+    color += [d3['Category20'][20][5]]
 
     node_ort = node_centric(G_full)
     cls_scr = [Internal_External(G_full, G_full_clusters, node_ort)]
@@ -367,14 +364,14 @@ if __name__ == "__main__":
     append_data(cls_scr, xdata, ydata)
     labels += ['Naive Ideal']
     color += [d3['Category20'][20][7]]
-    
-    
-    p.legend.click_policy = "hide"
-    p.legend.location = "bottom_right"
-    
+        
     source = ColumnDataSource(dict(x=xdata, y=ydata, colors= color, label = labels))
     
-    p.circle(x = 'x', y = 'y', color = 'colors', legend = 'label', source = source)
+    p.circle(x = 'x', y = 'y', color = 'colors', legend = 'label', source = source, size = 15, muted_alpha = 0.2)
+
+    p.legend.click_policy = "mute"
+    p.legend.location = "bottom_right"
+    p.title.text = 'Average Interior vs. Exterior Fitness Per Optimization'
     
     show(p)
     
