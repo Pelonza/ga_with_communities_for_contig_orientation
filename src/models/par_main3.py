@@ -304,6 +304,9 @@ def Run_GA(inparams):
                      toolbox.attr_bool, n=IND_SIZE)
     toolbox.register("population", tools.initRepeat, list,
                      toolbox.individual)
+    toolbox.register("orient", tools.initRepeat, creator.Individual,
+                 int, n=G_full.vcount())
+        
     toolbox.register("population_def", tools.initRepeat, list, toolbox.orient)
     toolbox.register("evaluate", evaluate, G=G,
                      Init_pairs=Init_mps)
