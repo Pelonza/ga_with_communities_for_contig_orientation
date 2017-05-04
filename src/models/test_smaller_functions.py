@@ -173,17 +173,18 @@ def node_centric(G):
     
     # Find the max -> min ordering of the node-happiness
     sort_ord = np.argsort(node_net)
-    while (node_net[sort_ord[-1]] < 0) :  #  Keep looping till all statified or ort
+    while (node_net[sort_ord[0]] < 0) :  #  Keep looping till all statified or ort
     # Note: To help this loop condition, nodes with flipped ort will be inf
     
         # Set ort to 'true' (flipped) and unhappy value to 'inf'
-        node_net[sort_ord[-1]] = np.inf
-        node_ort[sort_ord[-1]] = True
+        node_net[sort_ord[0]] = np.inf
+        node_ort[sort_ord[0]] = True
         
         # Loop through neighbors and update their good-bad values.
-        for i in G.vs[sort_ord[-1]].neighbors():
-            edge = G.get_eid(sort_ord[-1], i)
-            node_net[i] = node_net[i] + G.es[edge]['w2'] - G.es[edge]['w1']
+        for vertex in G.vs[sort_ord[0]].neighbors():
+            indx = vertex.index
+            edge = G.get_eid(sort_ord[0], indx)
+            node_net[indx] = node_net[indx] + G.es[edge]['w2'] - G.es[edge]['w1']
             
         sort_ord = np.argsort(node_net)
 

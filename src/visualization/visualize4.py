@@ -41,6 +41,7 @@ Files visualized in script 4:
 from bokeh.plotting import figure, output_file, show
 from bokeh.layouts import row, column, gridplot
 from bokeh.palettes import d3
+from bokeh.models import ColumnDataSource
 import json
 import os
 import numpy as np
@@ -97,72 +98,151 @@ def is_valid_file(parser, arg):
     else:
         return arg
     
-def Internal_External(myG, myClusters, InOrt):
+def node_centric(G):
+    node_net=[False]*G.vcount()
+    node_good = [False]*G.vcount()
+    node_bad = [False]*G.vcount()
+    
+    for edge in G.es:
+        # Source
+        node_good[edge.source] += edge['w1']
+        node_bad[edge.source] += edge['w2']
+        
+        # Target
+        node_good[edge.target] +=edge['w1']
+        node_bad[edge.target] += edge['w2']
+    
+    for i in range(G.vcount()):
+        node_net[i] = node_good[i] - node_bad[i]
+
+    node_ort = [False]*G.vcount()
+    
+    # Find the max -> min ordering of the node-happiness
+    sort_ord = np.argsort(node_net)
+    while (node_net[sort_ord[0]] < 0) :  #  Keep looping till all statified or ort
+    # Note: To help this loop condition, nodes with flipped ort will be inf
+    
+        # Set ort to 'true' (flipped) and unhappy value to 'inf'
+        node_net[sort_ord[0]] = np.inf
+        node_ort[sort_ord[0]] = True
+        
+        # Loop through neighbors and update their good-bad values.
+        for vertex in G.vs[sort_ord[0]].neighbors():
+            indx = vertex.index
+            edge = G.get_eid(sort_ord[0], indx)
+            node_net[indx] = node_net[indx] + G.es[edge]['w2'] - G.es[edge]['w1']
+            
+        sort_ord = np.argsort(node_net)
+
+
+    return node_ort
+    
+def Internal_External(myG, myClusters, CurrOrt):
     #  This function will return the internal/external mate-pairs for
     #  each cluster, based on the input orientation.
     intercluster = myClusters.crossing()
     
     num_cluster = np.max(myClusters.membership)+1
- 
-    imean = [None]*len(InOrt)
-    emean = [None]*len(InOrt)
-    
-    for j in range(len(InOrt)):
-        CurrOrt = InOrt[j]
-    
-        cluster_score = dict(igood=[False]*num_cluster, ibad=[False]*num_cluster,
-                             egood=[False]*num_cluster, ebad=[False]*num_cluster,
-                             ifit =[False]*num_cluster, efit=[False]*num_cluster)
-        for edge in myG.es:
-            #  Split inner/outer based on crossing true/false.
-            if intercluster[edge.index]: # External Edges
-                #  Check orientations to correctly use edge weights.
-                if CurrOrt[edge.source] == CurrOrt[edge.target]:
-                    cluster_score["egood"][myClusters.membership[edge.source]]+=edge["w1"]
-                    cluster_score["egood"][myClusters.membership[edge.target]]+=edge["w1"]
-                    cluster_score["ebad"][myClusters.membership[edge.source]]+=edge["w2"]
-                    cluster_score["ebad"][myClusters.membership[edge.target]]+=edge["w2"]
-                else:
-                    cluster_score["egood"][myClusters.membership[edge.source]]+=edge["w2"]
-                    cluster_score["egood"][myClusters.membership[edge.target]]+=edge["w2"]
-                    cluster_score["ebad"][myClusters.membership[edge.source]]+=edge["w1"]
-                    cluster_score["ebad"][myClusters.membership[edge.target]]+=edge["w1"]                
-            else: # Internal Edges
-                #  Check orientations to correctly use edge weights.
-                if CurrOrt[edge.source] == CurrOrt[edge.target]:
-                    cluster_score["igood"][myClusters.membership[edge.source]]+=edge["w1"]
-                    cluster_score["igood"][myClusters.membership[edge.target]]+=edge["w1"]
-                    cluster_score["ibad"][myClusters.membership[edge.source]]+=edge["w2"]
-                    cluster_score["ibad"][myClusters.membership[edge.target]]+=edge["w2"]
-                else:
-                    cluster_score["igood"][myClusters.membership[edge.source]]+=edge["w2"]
-                    cluster_score["igood"][myClusters.membership[edge.target]]+=edge["w2"]
-                    cluster_score["ibad"][myClusters.membership[edge.source]]+=edge["w1"]
-                    cluster_score["ibad"][myClusters.membership[edge.target]]+=edge["w1"]                
+    cluster_score = dict(igood=[False]*num_cluster, ibad=[False]*num_cluster,
+                         egood=[False]*num_cluster, ebad=[False]*num_cluster,
+                         ifit =[False]*num_cluster, efit=[False]*num_cluster, 
+                         icount=0, ecount=0)
+    for edge in myG.es:
+        #  Split inner/outer based on crossing true/false.
+        if intercluster[edge.index]: # External Edges
+            #  Check orientations to correctly use edge weights.
+            cluster_score['ecount'] += edge["w1"] + edge["w2"]
+            if CurrOrt[edge.source] == CurrOrt[edge.target]:
+                cluster_score["egood"][myClusters.membership[edge.source]]+=edge["w1"]
+                cluster_score["egood"][myClusters.membership[edge.target]]+=edge["w1"]
+                cluster_score["ebad"][myClusters.membership[edge.source]]+=edge["w2"]
+                cluster_score["ebad"][myClusters.membership[edge.target]]+=edge["w2"]
+            else:
+                cluster_score["egood"][myClusters.membership[edge.source]]+=edge["w2"]
+                cluster_score["egood"][myClusters.membership[edge.target]]+=edge["w2"]
+                cluster_score["ebad"][myClusters.membership[edge.source]]+=edge["w1"]
+                cluster_score["ebad"][myClusters.membership[edge.target]]+=edge["w1"]                
+        else: # Internal Edges
+            #  Check orientations to correctly use edge weights.
+            cluster_score['icount'] += edge["w1"]+edge["w2"]
+            if CurrOrt[edge.source] == CurrOrt[edge.target]:
+                cluster_score["igood"][myClusters.membership[edge.source]]+=edge["w1"]
+                cluster_score["igood"][myClusters.membership[edge.target]]+=edge["w1"]
+                cluster_score["ibad"][myClusters.membership[edge.source]]+=edge["w2"]
+                cluster_score["ibad"][myClusters.membership[edge.target]]+=edge["w2"]
+            else:
+                cluster_score["igood"][myClusters.membership[edge.source]]+=edge["w2"]
+                cluster_score["igood"][myClusters.membership[edge.target]]+=edge["w2"]
+                cluster_score["ibad"][myClusters.membership[edge.source]]+=edge["w1"]
+                cluster_score["ibad"][myClusters.membership[edge.target]]+=edge["w1"]                
 
                 
         
-        for i in range(num_cluster):
-            # Denominators split for line-length.
-            tmp_denom = (cluster_score["igood"][i]+cluster_score["ibad"][i])
-            if tmp_denom != 0 :
-                cluster_score["ifit"][i] = cluster_score["igood"][i]/ tmp_denom
-            else:
-                cluster_score["ifit"][i] = np.NaN
+    for i in range(num_cluster):
+        # Denominators split for line-length.
+        tmp_denom = (cluster_score["igood"][i]+cluster_score["ibad"][i])
+        if tmp_denom != 0 :
+            cluster_score["ifit"][i] = cluster_score["igood"][i]/ tmp_denom
+        else:
+            cluster_score["ifit"][i] = np.NaN
+        
+        tmp_denom = (cluster_score["egood"][i]+cluster_score["ebad"][i])
+        if tmp_denom != 0 :
+            cluster_score["efit"][i] = cluster_score["egood"][i]/ tmp_denom
+        else:
+            cluster_score["efit"][i] = np.NaN
+    
+    cluster_score["emean"] = np.nanmean(cluster_score["efit"])
+    cluster_score["imean"] = np.nanmean(cluster_score["ifit"])
+        
+    return cluster_score
+
+def Internal_External_naive(myG, myClusters):
+    #  This function will return the internal/external mate-pairs for
+    #  each cluster, based on picking each edges "ideal" orientation
+    intercluster = myClusters.crossing()
+    
+    num_cluster = np.max(myClusters.membership)+1
+    cluster_score = dict(igood=[False]*num_cluster, ibad=[False]*num_cluster,
+                         egood=[False]*num_cluster, ebad=[False]*num_cluster,
+                         ifit =[False]*num_cluster, efit=[False]*num_cluster, 
+                         icount=0, ecount=0)
+    for edge in myG.es:
+        #  Split inner/outer based on crossing true/false.
+        if intercluster[edge.index]: # External Edges
+            #  Check orientations to correctly use edge weights.
+            cluster_score['ecount'] += edge["w1"] + edge["w2"]
+            cluster_score["egood"][myClusters.membership[edge.source]]+=np.max([edge["w1"], edge["w2"]])
+            cluster_score["egood"][myClusters.membership[edge.target]]+=np.max([edge["w1"], edge["w2"]])
+            cluster_score["ebad"][myClusters.membership[edge.source]]+=np.min([edge["w1"], edge["w2"]])
+            cluster_score["ebad"][myClusters.membership[edge.target]]+=np.min([edge["w1"], edge["w2"]])
             
-            tmp_denom = (cluster_score["egood"][i]+cluster_score["ebad"][i])
-            if tmp_denom != 0 :
-                cluster_score["efit"][i] = cluster_score["egood"][i]/ tmp_denom
-            else:
-                cluster_score["efit"][i] = np.NaN
-        # End loop over num_clusters
+        else: # Internal Edges
+            #  Check orientations to correctly use edge weights.
+            cluster_score['icount'] += edge["w1"]+edge["w2"]
+            cluster_score["igood"][myClusters.membership[edge.source]]+=np.max([edge["w1"], edge["w2"]])
+            cluster_score["igood"][myClusters.membership[edge.target]]+=np.max([edge["w1"], edge["w2"]])
+            cluster_score["ibad"][myClusters.membership[edge.source]]+=np.min([edge["w1"], edge["w2"]])
+            cluster_score["ibad"][myClusters.membership[edge.target]]+=np.min([edge["w1"], edge["w2"]])
         
-        imean[j] = np.nanmean(cluster_score["ifit"])
-        emean[j] = np.nanmean(cluster_score["efit"])     
+    for i in range(num_cluster):
+        # Denominators split for line-length.
+        tmp_denom = (cluster_score["igood"][i]+cluster_score["ibad"][i])
+        if tmp_denom != 0 :
+            cluster_score["ifit"][i] = cluster_score["igood"][i]/ tmp_denom
+        else:
+            cluster_score["ifit"][i] = np.NaN
         
-        print("Finished scoring orientation "+str(j))
+        tmp_denom = (cluster_score["egood"][i]+cluster_score["ebad"][i])
+        if tmp_denom != 0 :
+            cluster_score["efit"][i] = cluster_score["egood"][i]/ tmp_denom
+        else:
+            cluster_score["efit"][i] = np.NaN
+    
+    cluster_score["emean"] = np.nanmean(cluster_score["efit"])
+    cluster_score["imean"] = np.nanmean(cluster_score["ifit"])
         
-    return list([imean, emean])
+    return cluster_score
 
 def load_data(input_filename):
     # Read in tally file, assuming a 6-column format, no duplicated edges
@@ -188,6 +268,21 @@ def load_data(input_filename):
     #Initial_matepairs = compute_initial_pairs(ig_G)
         
     return ig_G
+
+def load(ifile):
+    # Little helper function to hide repeated lines for opening files.
+    f = open(ifile,'r')
+    df = json.load(f)
+    f.close()
+    
+    return df
+
+def append_data(cls_scr, xdata, ydata):
+    # Little helper function to hide repeated data appends.
+    xdata += [np.mean([cls_scr[k]['emean'] for k in range(len(cls_scr))])]
+    ydata += [np.mean([cls_scr[k]['imean'] for k in range(len(cls_scr))])]
+    return
+    
 # %%
 if __name__ == "__main__":
     
@@ -201,143 +296,204 @@ if __name__ == "__main__":
     G_full_clusters = G_full_dendrogram.as_clustering()
     #G_comm = G_full_clusters.cluster_graph(combine_edges=sum)
 
+    xdata = []
+    ydata = []
+    labels = []
+    color = []
+    
+    p = figure(x_axis_label = 'Average External Fitness', y_axis_label = 'Average Internal Fitness')
+
     # Plot the two-stage version, GA then Comm
-    f = open('../../data/interim/turkey_twostage_full.stat')
-    twostage = json.load(f)
-    f.close()
+    df = load('../../data/interim/turkey_preort_cmga_A')
+    df += load('../../data/interim/turkey_preort_cmga_B.stat')
     
-    # Get list of GA orientations
-    #  Computing these was super slow... so just import the pickled file?
-    # ga_orts = [ twostage[k][0]['tbort'] for k in range(len(twostage))]
-    # ga_cls_scr = Internal_External(G_full, G_full_clusters, ga_orts)  #  This should generate cluster scores for each best orientation
-    # mrg_orts = [ twostage[k][2]['merged_ort'] for k in range(len(twostage))]
-    # mrg_cls_scr = Internal_External(G_full, G_full_clusters, mrg_orts)  # This should generate cluster scores for each merged orientation
+    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(2) ] #range(len(df))]
+    append_data(cls_scr, xdata, ydata)
+    labels += ['Node-Centric with Comm - GA']
+    color += [d3['Category20'][20][0]]
+    
+    #  Add the Preoriented ga-comm data point.
+    df = load('../../data/interim/turkey_preot_gacm_A.stat')
+    df += load('../../data/interim/turkey_preort_gacm_B.stat')
+    
+    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(2) ] #range(len(df))]
+    append_data(cls_scr, xdata, ydata)
+    labels += ['Node-Centric with GA-Comm']
+    color += [d3['Category20'][20][1]]
+    
+    #  Add the preoriented ga point.
+    df = load('../../data/interim/turkey_preort_ga_A.stat')
+    df += load('../../data/interim/turkey_preort_ga_B.stat')
+    
+    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][1]) for k in range(2) ] #range(len(df))]
+    append_data(cls_scr, xdata, ydata)
+    labels += ['Node-Centric with GA']
+    color += [d3['Category20'][20][2]]
+    
+    # Add the Comm-GA point
+    df = load('../../data/interim/turkey_cmga_A2.stat')
+    df += load('../../data/interim/turkey_cmga_B2.stat')
+    
+    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(2) ] #range(len(df))]
+    append_data(cls_scr, xdata, ydata)
+    labels += ['Comm - GA']
+    color += [d3['Category20'][20][3]]
+    
+    #  Add the Preoriented ga-comm data point.
+    df = load('../../data/interim/turkey_gacm_B3.stat')
+    df += load('../../data/interim/turkey_gacm_B4.stat')
+    
+    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(2) ] #range(len(df))]
+    append_data(cls_scr, xdata, ydata)
+    labels += ['GA-Comm']
+    color += [d3['Category20'][20][4]]
 
+    #  Add the preoriented ga point.
+    df = load('../../data/interim/turkey_longGA_A.stat')
+    df += load('../../data/interim/turkey_longGA_B.stat')
+    
+    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][1]) for k in range(2) ] #range(len(df))]
+    append_data(cls_scr, xdata, ydata)
+    labels += ['GA']
+    color += [d3['Category20'][20][5]]
 
+    node_ort = node_centric(G_full)
+    cls_scr = [Internal_External(G_full, G_full_clusters, node_ort)]
+    append_data(cls_scr, xdata, ydata)
+    labels += ['Node-Centric']
+    color += [d3['Category20'][20][6]]
     
-    f = open("../../data/interim/turkey_gacm_ga_cls_scr",'rb')
-    ga_cls_scr = pickle.load(f)
-    f.close()
-
-    f = open("../../data/interim/turkey_gacm_mrg_cls_scr",'rb')
-    mrg_cls_scr = pickle.load(f)
-    f.close()
-    
-    tgacm_ga_imean = np.mean(ga_cls_scr[0])
-    tgacm_ga_emean = np.mean(ga_cls_scr[1])
-    tgacm_mrg_imean = np.mean(mrg_cls_scr[0])
-    tgacm_mrg_emean = np.mean(mrg_cls_scr[1])
+    cls_scr = [Internal_External_naive(G_full, G_full_clusters)]
+    append_data(cls_scr, xdata, ydata)
+    labels += ['Naive Ideal']
+    color += [d3['Category20'][20][7]]
     
     
+    p.legend.click_policy = "hide"
+    p.legend.location = "bottom_right"
     
-    # Note: If I make the ranges dynamic based on the runs, I can reuse these
-    # no matter how many trials I do.... 
-    gagrp_fig = figure(title = "Turkey GA with GA-Comm")
-    df_2stage = [ twostage[k][0]['tmax'] for k in range(50)]
-    df_2stage_grp = [twostage[k][1]['tmax'] for k in range(50)]
-    avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
-    avg_tmax_2stg_grp = (np.mean(df_2stage_grp, axis=0).tolist())
-    xdata = twostage[0][0]['tgen']
-    xdata_grp = [ (twostage[0][1]['tgen'][k]+len(xdata)) for k in range(len(twostage[0][1]['tgen'])) ]
-    #xdata = xdata + tmpx
-    gagrp_fig.line(xdata, avg_tmax_2stg,
-                   legend = 
-                   "GA - Mut. = "+str(twostage[0][0]['tparam'][2])+
-                   " , Cx = "+str(twostage[0][0]['tparam'][3]),
-                   line_color = d3['Category20'][3][0])
-    gagrp_fig.line(xdata_grp, avg_tmax_2stg_grp,
-                   legend =
-                   "GA-Comm - Mut. = "+str(twostage[0][1]['tparam'][2])+
-                   " , Cx = "+str(twostage[0][1]['tparam'][3]),
-                   line_color = d3['Category20'][3][2])
+    source = ColumnDataSource(dict(x=xdata, y=ydata, colors= color, label = labels))
     
-    gagrp_fig.legend.location = "bottom_right"
-    gagrp_fig.legend.click_policy = "mute"
+    p.circle(x = 'x', y = 'y', color = 'colors', legend = 'label', source = source)
     
-    # Plot the two-stage version, Comm then GA
-    grpga_fig = figure(title = "Turkey Comm-GA with GA")
-        
-    f = open('../../data/interim/turkey_twostage_cmga_A.stat')
-    twostage = json.load(f)
-    f.close()
+    show(p)
     
-    df_2stage = [ twostage[k][0]['tmax'] for k in range(16)]
-    df_2stage_grp = [twostage[k][1]['tmax'] for k in range(16)]
-    cm_cls_scr = [ twostage[k][2]['postcommclsscr'] for k in range(len(twostage))]
-    ga_cls_scr = [ twostage[k][2]['postgaclsscr'] for k in range(len(twostage))]
-    
-    f = open('../../data/interim/turkey_twostage_cmga_B.stat')
-    twostage = json.load(f)
-    f.close()
-    
-    df_2stage = df_2stage + [ twostage[k][0]['tmax'] for k in range(16)]
-    df_2stage_grp = df_2stage_grp + [twostage[k][1]['tmax'] for k in range(16)]
-    cm_cls_scr = cm_cls_scr + [ twostage[k][2]['postcommclsscr'] for k in range(len(twostage))]
-    ga_cls_scr = ga_cls_scr + [ twostage[k][2]['postgaclsscr'] for k in range(len(twostage))]
-    
-    f = open('../../data/interim/turkey_twostage_cmga_C.stat')
-    twostage = json.load(f)
-    f.close()
-    
-    df_2stage = df_2stage + [ twostage[k][0]['tmax'] for k in range(16)]
-    df_2stage_grp = df_2stage_grp + [twostage[k][1]['tmax'] for k in range(16)]        
-    cm_cls_scr = cm_cls_scr + [ twostage[k][2]['postcommclsscr'] for k in range(len(twostage))]
-    ga_cls_scr = ga_cls_scr + [ twostage[k][2]['postgaclsscr'] for k in range(len(twostage))]
-
-    ifit_tmp = [ cm_cls_scr[k]['ifit'] for k in range(len(cm_cls_scr))]
-    efit_tmp = [ cm_cls_scr[k]['efit'] for k in range(len(cm_cls_scr))]
-    tcmga_mrg_imean = np.nanmean(ifit_tmp)
-    tcmga_mrg_emean = np.nanmean(efit_tmp)
-    
-    
-    ifit_tmp = [ ga_cls_scr[k]['ifit'] for k in range(len(ga_cls_scr))]
-    efit_tmp = [ ga_cls_scr[k]['efit'] for k in range(len(ga_cls_scr))]
-    tcmga_ga_imean = np.nanmean(ifit_tmp)
-    tcmga_ga_emean = np.nanmean(efit_tmp)
-
-    avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
-    avg_tmax_2stg_grp = (np.mean(df_2stage_grp, axis=0).tolist())
-    xdata = twostage[0][0]['tgen']
-    xdata_grp = [ (twostage[0][1]['tgen'][k]+len(xdata)) for k in range(len(twostage[0][1]['tgen'])) ]
-    #xdata = xdata + tmpx
-    grpga_fig.line(xdata, avg_tmax_2stg,
-                   legend = 
-                   "GA - Mut. = "+str(twostage[0][0]['tparam'][2])+
-                   " , Cx = "+str(twostage[0][0]['tparam'][3]),
-                   line_color = d3['Category20'][3][0])
-    grpga_fig.line(xdata_grp, avg_tmax_2stg_grp,
-                   legend =
-                   "GA-Comm - Mut. = "+str(twostage[0][1]['tparam'][2])+
-                   " , Cx = "+str(twostage[0][1]['tparam'][3]),
-                   line_color = d3['Category20'][3][2])
-
-    grpga_fig.legend.location = "bottom_right"
-    grpga_fig.legend.click_policy = "mute"
-    
-    f=open('../../data/interim/turkey_longGA_A.stat','r')
-    tlonga = json.load(f)
-    f.close()
-    tmp = [ [tlonga[k][2][j]['max'] for j in range(10001)] for k in range(16)]
-    
-    f=open('../../data/interim/turkey_longGA_B.stat','r')
-    tlongb = json.load(f)
-    f.close()
-    tmp = tmp + [ [tlongb[k][2][j]['max'] for j in range(10001)] for k in range(16)]
-    
-    f=open('../../data/interim/turkey_longGA_C.stat','r')
-    tlongc = json.load(f)
-    f.close()
-    tlong = tmp + [ [tlongc[k][2][j]['max'] for j in range(10001)] for k in range(16)]
-
-    tlong_fig = figure(title = "High Generation GA on Turkey")
-    avg_max_long = (np.mean(tlong, axis=0).tolist())
-    xdata = [ tlonga[0][2][j]['gen'] for j in range(10001)]
-    tlong_fig.line(xdata, avg_max_long,
-               legend = "Mut. = 0.3" + " , Cx. = 0.9")
-    
-    tlong_fig.legend.location = "bottom_right"
-
-
-    show(gridplot([[tlong_fig, None],
-                   [gagrp_fig, grpga_fig]]))
+#     ydata = []
+#    # For each trial in the data-frame, recompute the max fitness scores
+#    for i in range(len(pcmga_df)):
+#        cls_scr = Internal_External(G_full, G_full_clusters, null_ort)
+#        ydata = ydata + (pcmga_df[i][0]['tmax']*cls_scr['ecount'] + cls_scr['icount']*cls_scr['imean'])/ (cls_scr['ecount']+cls_scr['icount'])
+#    
+#    
+#    
+#    # Note: If I make the ranges dynamic based on the runs, I can reuse these
+#    # no matter how many trials I do.... 
+#    gagrp_fig = figure(title = "Turkey GA with GA-Comm")
+#    df_2stage = [ twostage[k][0]['tmax'] for k in range(50)]
+#    df_2stage_grp = [twostage[k][1]['tmax'] for k in range(50)]
+#    avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
+#    avg_tmax_2stg_grp = (np.mean(df_2stage_grp, axis=0).tolist())
+#    xdata = twostage[0][0]['tgen']
+#    xdata_grp = [ (twostage[0][1]['tgen'][k]+len(xdata)) for k in range(len(twostage[0][1]['tgen'])) ]
+#    #xdata = xdata + tmpx
+#    gagrp_fig.line(xdata, avg_tmax_2stg,
+#                   legend = 
+#                   "GA - Mut. = "+str(twostage[0][0]['tparam'][2])+
+#                   " , Cx = "+str(twostage[0][0]['tparam'][3]),
+#                   line_color = d3['Category20'][3][0])
+#    gagrp_fig.line(xdata_grp, avg_tmax_2stg_grp,
+#                   legend =
+#                   "GA-Comm - Mut. = "+str(twostage[0][1]['tparam'][2])+
+#                   " , Cx = "+str(twostage[0][1]['tparam'][3]),
+#                   line_color = d3['Category20'][3][2])
+#    
+#    gagrp_fig.legend.location = "bottom_right"
+#    gagrp_fig.legend.click_policy = "mute"
+#    
+#    # Plot the two-stage version, Comm then GA
+#    grpga_fig = figure(title = "Turkey Comm-GA with GA")
+#        
+#    f = open('../../data/interim/turkey_twostage_cmga_A.stat')
+#    twostage = json.load(f)
+#    f.close()
+#    
+#    df_2stage = [ twostage[k][0]['tmax'] for k in range(16)]
+#    df_2stage_grp = [twostage[k][1]['tmax'] for k in range(16)]
+#    cm_cls_scr = [ twostage[k][2]['postcommclsscr'] for k in range(len(twostage))]
+#    ga_cls_scr = [ twostage[k][2]['postgaclsscr'] for k in range(len(twostage))]
+#    
+#    f = open('../../data/interim/turkey_twostage_cmga_B.stat')
+#    twostage = json.load(f)
+#    f.close()
+#    
+#    df_2stage = df_2stage + [ twostage[k][0]['tmax'] for k in range(16)]
+#    df_2stage_grp = df_2stage_grp + [twostage[k][1]['tmax'] for k in range(16)]
+#    cm_cls_scr = cm_cls_scr + [ twostage[k][2]['postcommclsscr'] for k in range(len(twostage))]
+#    ga_cls_scr = ga_cls_scr + [ twostage[k][2]['postgaclsscr'] for k in range(len(twostage))]
+#    
+#    f = open('../../data/interim/turkey_twostage_cmga_C.stat')
+#    twostage = json.load(f)
+#    f.close()
+#    
+#    df_2stage = df_2stage + [ twostage[k][0]['tmax'] for k in range(16)]
+#    df_2stage_grp = df_2stage_grp + [twostage[k][1]['tmax'] for k in range(16)]        
+#    cm_cls_scr = cm_cls_scr + [ twostage[k][2]['postcommclsscr'] for k in range(len(twostage))]
+#    ga_cls_scr = ga_cls_scr + [ twostage[k][2]['postgaclsscr'] for k in range(len(twostage))]
+#
+#    ifit_tmp = [ cm_cls_scr[k]['ifit'] for k in range(len(cm_cls_scr))]
+#    efit_tmp = [ cm_cls_scr[k]['efit'] for k in range(len(cm_cls_scr))]
+#    tcmga_mrg_imean = np.nanmean(ifit_tmp)
+#    tcmga_mrg_emean = np.nanmean(efit_tmp)
+#    
+#    
+#    ifit_tmp = [ ga_cls_scr[k]['ifit'] for k in range(len(ga_cls_scr))]
+#    efit_tmp = [ ga_cls_scr[k]['efit'] for k in range(len(ga_cls_scr))]
+#    tcmga_ga_imean = np.nanmean(ifit_tmp)
+#    tcmga_ga_emean = np.nanmean(efit_tmp)
+#
+#    avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
+#    avg_tmax_2stg_grp = (np.mean(df_2stage_grp, axis=0).tolist())
+#    xdata = twostage[0][0]['tgen']
+#    xdata_grp = [ (twostage[0][1]['tgen'][k]+len(xdata)) for k in range(len(twostage[0][1]['tgen'])) ]
+#    #xdata = xdata + tmpx
+#    grpga_fig.line(xdata, avg_tmax_2stg,
+#                   legend = 
+#                   "GA - Mut. = "+str(twostage[0][0]['tparam'][2])+
+#                   " , Cx = "+str(twostage[0][0]['tparam'][3]),
+#                   line_color = d3['Category20'][3][0])
+#    grpga_fig.line(xdata_grp, avg_tmax_2stg_grp,
+#                   legend =
+#                   "GA-Comm - Mut. = "+str(twostage[0][1]['tparam'][2])+
+#                   " , Cx = "+str(twostage[0][1]['tparam'][3]),
+#                   line_color = d3['Category20'][3][2])
+#
+#    grpga_fig.legend.location = "bottom_right"
+#    grpga_fig.legend.click_policy = "mute"
+#    
+#    f=open('../../data/interim/turkey_longGA_A.stat','r')
+#    tlonga = json.load(f)
+#    f.close()
+#    tmp = [ [tlonga[k][2][j]['max'] for j in range(10001)] for k in range(16)]
+#    
+#    f=open('../../data/interim/turkey_longGA_B.stat','r')
+#    tlongb = json.load(f)
+#    f.close()
+#    tmp = tmp + [ [tlongb[k][2][j]['max'] for j in range(10001)] for k in range(16)]
+#    
+#    f=open('../../data/interim/turkey_longGA_C.stat','r')
+#    tlongc = json.load(f)
+#    f.close()
+#    tlong = tmp + [ [tlongc[k][2][j]['max'] for j in range(10001)] for k in range(16)]
+#
+#    tlong_fig = figure(title = "High Generation GA on Turkey")
+#    avg_max_long = (np.mean(tlong, axis=0).tolist())
+#    xdata = [ tlonga[0][2][j]['gen'] for j in range(10001)]
+#    tlong_fig.line(xdata, avg_max_long,
+#               legend = "Mut. = 0.3" + " , Cx. = 0.9")
+#    
+#    tlong_fig.legend.location = "bottom_right"
+#
+#
+#    show(gridplot([[tlong_fig, None],
+#                   [gagrp_fig, grpga_fig]]))
 #    show(column(cxfig, mut_fig, mut_comfig, mutidfig, mutid_comfig) )  
