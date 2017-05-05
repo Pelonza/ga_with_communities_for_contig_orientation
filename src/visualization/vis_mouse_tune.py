@@ -19,14 +19,12 @@ Files being visualized in this script:
     
 """
 
-import bokeh as bk
 from bokeh.plotting import figure, output_file, show
 from bokeh.layouts import row, column, gridplot
-import bokeh.palettes as pal
 from bokeh.palettes import d3
-from deap import tools
+from bokeh.models import Title, Range1d
+from bokeh.models.widgets import Panel, Tabs
 import json
-import os
 import numpy as np
 
 # %%
@@ -40,6 +38,8 @@ def load(ifile):
 
 if __name__ == "__main__":
     
+    output_file("mouse_tuning.html")
+
     # =================
     # Load all the data
     # =================
@@ -49,10 +49,9 @@ if __name__ == "__main__":
     M_mut = load('../../data/interim/mouse_mut.stat')
     M_cx_comm = load('../../data/interim/mouse_cx_comm_B.stat')
     M_mut_comm = load('../../data/interim/mouse_mut_comm.stat')
-    swp2x_C_df = load('../../data/interim/mouse_2xswp_30_50mut_35_50cx.stat')
-    
+       
     # Put sources that have 20 values to plot in list.
-    sources_20v = [M_cx, M_mut, M_cx_comm, M_mut_comm, swp2x_C_df]
+    sources_20v = [M_cx, M_mut, M_cx_comm, M_mut_comm]
     
     # Load all the 10-value date files
     M_mutid = load('../../data/interim/mouse_mutidpb.stat')
@@ -71,73 +70,70 @@ if __name__ == "__main__":
     # Load 2x Parameter sweeps. These are funny indexing!
     swp2x_A_df = load('../../data/interim/mouse_2xswp_15_30mut_20_30cx.stat')
     swp2x_B_df = load('../../data/interim/mouse_2xswp_15_40mut_15_35cx.stat')
+    swp2x_C_df = load('../../data/interim/mouse_2xswp_30_50mut_35_50cx.stat')    
     
+    sources_other = [swp2x_A_df, swp2x_B_df, swp2x_C_df]
+    # ==========================
+    # Create some of the figures
+    # Also, add sub-titles with fixed parameters.
+    # ==========================
     
-    # Plan is to create lists of the figures, zip them with list of sources
-    # then every loop that has multiple data entries can be condensed. 
-    # See sample below:
-#    sources = ['mx1', 'mx2']
-#
-#    figs = ['fig1', 'fig2']
-#    
-#    for source, fig in zip(sources, figs):
-#        print(source)
-#        print(fig)
-
-    output_file("test.html")
     cxfig=figure(title="Crossover Parameter Sweep")
     cx_comfig=figure(title="Crossover Parameter Sweep on Communities")
+    
+    for src, fig in zip([M_cx, M_cx_comm],[cxfig, cx_comfig]):
+        fig.add_layout( Title(text = "Fixed Mutation: " + 
+                              str(src[0][0]['tparam'][2]) +
+                              " Fixed Ind. Mutation: " + 
+                              str(src[0][0]['tparam'][4]), align="center" ), "below")   
     
     mut_comfig=figure(title="Mutation Parameter Sweep on Communities")
     mut_fig=figure(title="Mutation Parameter Sweep")
     
+    for src, fig in zip([M_mut, M_mut_comm],[mut_fig, mut_comfig]):
+        fig.add_layout( Title(text = "Fixed Crossover: " + 
+                              str(src[0][0]['tparam'][3]) +
+                              " Fixed Ind. Mutation: " + 
+                              str(src[0][0]['tparam'][4]), align="center" ), "below")
+    
     mutidfig = figure(title="Independent Mutation Parameter Sweep")
     mutid_comfig = figure(title="Independent Mutation Parameter Sweep on Communities")
+ 
+    for src, fig in zip([M_mutid, M_mutid_comm],[mutidfig, mutid_comfig]):
+        fig.add_layout( Title(text = "Fixed Crossover: " + 
+                              str(src[0][0]['tparam'][3]) +
+                              " Fixed Mutation: " + 
+                              str(src[0][0]['tparam'][2]), align="center" ), "below")
 
-    #  Loops over the 20-value parameter sweeps (cx/mut for full/comm)
-    for j in range(2,19):
-        df = [M_cx[j][k]['tmax'] for k in range(50)]
-        avg_tmax = (np.mean(df, axis=0)).tolist()
-        cxfig.line(M_cx[0][0]['tgen'], avg_tmax, legend="Crossover = "+
-                   str(M_cx[j][0]['tparam'][3]),
-                   line_color= d3['Category20'][20][j], muted_alpha=0.2, alpha=1)
-        
-        dfc = [M_cx_comm[j][k]['tmax'] for k in range(50)]
-        avg_tmaxc = (np.mean(dfc, axis=0)).tolist()
-        cx_comfig.line(M_cx_comm[0][0]['tgen'], avg_tmaxc, 
-                       legend="Crossover = "+str(M_cx_comm[j][0]['tparam'][3]),
-                       line_color=d3['Category20'][20][j], muted_alpha=0.2, alpha=1)
-        
-        df2 = [M_mut[j][k]['tmax'] for k in range(50)]
-        avg_tmax2 = (np.mean(df2, axis=0)).tolist()
-        mut_fig.line(M_mut[0][0]['tgen'], avg_tmax2, legend="Mutation = "+
-                   str(M_mut[j][0]['tparam'][2]),
-                   line_color= d3['Category20'][20][j], muted_alpha=0.2, alpha=1)        
-        
-        dfc2 = [M_mut_comm[j][k]['tmax'] for k in range(50)]
-        avg_tmaxc2 = (np.mean(dfc2, axis=0)).tolist()
-        mut_comfig.line(M_mut_comm[0][0]['tgen'], avg_tmaxc2, 
-                       legend="Mutation = "+str(M_mut_comm[j][0]['tparam'][2]),
-                       line_color=d3['Category20'][20][j], muted_alpha=0.2, alpha=1)    
+    swp2x_fig = figure(title = "Sweeping Two Parameters - Mouse")
+    swp2xB_fig = figure(title = "Sweeping Two Parameters B- Mouse")
+
+    # Figure lists for iterating over.
+    figs_20v = [cxfig, mut_fig, cx_comfig, mut_comfig]    
+    figs_10v = [mutid_comfig, mutidfig]
+    figs_comm = [cx_comfig, mut_comfig, mutid_comfig]
+    figs_full = [cxfig, mut_fig, mutidfig]
+    figs_2x = [swp2x_fig, swp2xB_fig]
+      
+    # =====================
+    # Plot the actual data!
+    # =====================
+    
+   
+    var_20v = ['Crossover', 'Mutation', 'Crossover', 'Mutation']
+    indx_20v = [3, 2, 3, 2]
+
+    for source, fig, var, indx in zip(sources_20v, figs_20v, var_20v, indx_20v):
+       for j in range(1,19):
+           df = [source[j][k]['tmax'] for k in range(len(source[0]))]
+           avg_tmax = (np.mean(df, axis=0)).tolist()
+           fig.line(source[0][0]['tgen'], avg_tmax, 
+                    legend=var +" = "+ str(source[j][0]['tparam'][indx]),
+                    line_color= d3['Category20'][20][j], 
+                    muted_alpha=0.2, alpha=1)
 
     #  Loops over the 10-value parameter sweeps (independent mutation rates)        
-    for j in range(1,10):
-        df = [M_mutid[j][k]['tmax'] for k in range(50)]
-        avg_tmax = (np.mean(df, axis=0)).tolist()
-        mutidfig.line(M_mutid[0][0]['tgen'], avg_tmax, 
-                      legend="Ind. Mut. = "+str(M_mutid[j][0]['tparam'][4]),
-                      line_color=d3['Category20'][15][j], alpha=1)
-        df2 = [M_mutid_comm[j][k]['tmax'] for k in range(50)]
-        
-        avg_tmax2 = (np.mean(df2, axis=0)).tolist()
-        mutid_comfig.line(M_mutid_comm[0][0]['tgen'], avg_tmax2, 
-                      legend="Ind. Mut. = "+str(M_mutid_comm[j][0]['tparam'][4]),
-                      line_color=d3['Category20'][15][j], alpha=1)
-    
- 
 
-#    mutid_comm_extr = figure(title="Finer Sweep of Independent Mutation on Communities")
-#    mutid_extr = figure(title="Finer Sweep of Independent Mutation")
     for j in range(0,12,2):
         df_extraC = [More_mutidcomm[j][k]['tmax'] for k in range(25)]
         df_extraC = df_extraC + [More_mutidcomm[j+1][k]['tmax'] for k in range(25)]
@@ -152,10 +148,22 @@ if __name__ == "__main__":
         mutidfig.line(More_mutid[0][0]['tgen'], avg_tmax_extra,
                           legend = "Ind. Mut. = "+str(More_mutid[j][0]['tparam'][4]),
                           line_color=d3['Category20'][12][j], alpha = 1)
- 
+
+    for j in range(1,10):
+        df = [M_mutid[j][k]['tmax'] for k in range(50)]
+        avg_tmax = (np.mean(df, axis=0)).tolist()
+        mutidfig.line(M_mutid[0][0]['tgen'], avg_tmax, 
+                      legend="Ind. Mut. = "+str(M_mutid[j][0]['tparam'][4]),
+                      line_color=d3['Category20'][15][j], alpha=1)
+        df2 = [M_mutid_comm[j][k]['tmax'] for k in range(50)]
+        
+        avg_tmax2 = (np.mean(df2, axis=0)).tolist()
+        mutid_comfig.line(M_mutid_comm[0][0]['tgen'], avg_tmax2, 
+                      legend="Ind. Mut. = "+str(M_mutid_comm[j][0]['tparam'][4]),
+                      line_color=d3['Category20'][15][j], alpha=1)
     
-    
-    swp2x_fig = figure(title = "Sweeping Two Parameters - Mouse")
+
+      
     for j in range(3):
         df = [swp2x_A_df[j][k]['tmax'] for k in range(50)]
         avg_tmax = (np.mean(df, axis=0)).tolist()
@@ -177,7 +185,7 @@ if __name__ == "__main__":
                        muted_alpha=0.2, alpha=1)
         
     
-    swp2xB_fig = figure(title = "Sweeping Two Parameters B- Mouse")
+
     for j in range(20):
         df = [swp2x_C_df[j][k]['tmax'] for k in range(len(swp2x_C_df[0][0]))]
         avg_tmax = (np.mean(df, axis=0)).tolist()
@@ -187,95 +195,35 @@ if __name__ == "__main__":
                        " Id. Mut. = "+str(swp2x_C_df[j][0]['tparam'][4]),
                        line_color= d3['Category20'][20][j],
                        muted_alpha=0.2, alpha=1)
+
+    for fig in figs_full+figs_comm:
+        #Set a whole slew of things to make pretty pictures!
+        fig.xaxis.axis_label = "Iteration"
+        fig.yaxis.axis_label = "Fitness"
+        fig.legend.location = "bottom_right"
+        fig.legend.click_policy = "hide"
+        fig.x_range = Range1d(0, 3000)
+        fig.xaxis.bounds = (0, 2500)
+
+    for fig in figs_full:
+        fig.y_range = Range1d(0.5, 0.65)
         
-        
-#    #  Move all the legends and set the interactions to hide unwanted lines.    
-#    mutid_comm_extr.legend.location = "bottom_right"
-#    mutid_comm_extr.legend.click_policy = "hide"    
-#    
-#    mutid_extr.legend.location = "bottom_right"
-#    mutid_extr.legend.click_policy = "hide"    
-
-    swp2x_fig.legend.location = "bottom_right"
-    swp2x_fig.legend.click_policy = "hide"    
-
-    swp2xB_fig.legend.location = "bottom_right"
-    swp2xB_fig.legend.click_policy = "hide"
+    for fig in figs_comm:
+        fig.y_range = Range1d(0.65, 0.95)
     
-#    #Open additional mutid plots and add them.
-#    f = open('../../data/interim/mouse_mutidpb_2d5_15_by_2d5_comm.stat','r')
-#    More_mutidcomm = json.load(f)
-#    f.close()
-#    
-#    f = open('../../data/interim/mouse_mutidpb_2d5_15_by_2d5.stat','r')
-#    More_mutid = json.load(f)
-#    f.close()
-#
-#
-#    mutid_comm_extr = figure(title="Finer Sweep of Independent Mutation on Communities")
-#    mutid_extr = figure(title="Finer Sweep of Independent Mutation")
-#    for j in range(0,12,2):
-#        df_extraC = [More_mutidcomm[j][k]['tmax'] for k in range(25)]
-#        df_extraC = df_extraC + [More_mutidcomm[j+1][k]['tmax'] for k in range(25)]
-#        avg_tmax_extraC = (np.mean(df_extraC, axis=0)).tolist()
-#        mutid_comm_extr.line(More_mutidcomm[0][0]['tgen'], avg_tmax_extraC,
-#                          legend = "Ind. Mut. = "+str(More_mutidcomm[j][0]['tparam'][4]),
-#                          line_color=d3['Category20'][12][j], alpha = 1)
-#        
-#        df_extra = [More_mutid[j][k]['tmax'] for k in range(25)]
-#        df_extra = df_extra + [More_mutid[j+1][k]['tmax'] for k in range(25)]
-#        avg_tmax_extra = (np.mean(df_extra, axis=0)).tolist()
-#        mutid_extr.line(More_mutid[0][0]['tgen'], avg_tmax_extra,
-#                          legend = "Ind. Mut. = "+str(More_mutid[j][0]['tparam'][4]),
-#                          line_color=d3['Category20'][12][j], alpha = 1)
-    
+    for fig in figs_2x:
+        fig.y_range = Range1d(0.55, 0.7)
+        fig.x_range = Range1d(0,4500)
 
-    #  Move all the legends and set the interactions to hide unwanted lines.    
-    cxfig.legend.location = "bottom_right"
-    cxfig.legend.click_policy = "hide"
     
-    cx_comfig.legend.location = "bottom_right"
-    cx_comfig.legend.click_policy = "hide"
+    tab1 = Panel(child=figs_comm, title = "By Communities")
+    tab2 = Panel(child=figs_full, title = "All Mate-Pairs")
+    tab3 = Panel(child=figs_2x, title = "2 Changing Parameters")
     
-    mut_comfig.legend.location = "bottom_right"
-    mut_comfig.legend.click_policy = "hide"
-    
-    mut_fig.legend.location = "bottom_right"
-    mut_fig.legend.click_policy = "hide"    
+    tabs = Tabs(tabs = [tab1, tab2, tab3])
 
-    mutidfig.legend.location = "bottom_right"
-    mutidfig.legend.click_policy = "hide"
-
-    mutid_comfig.legend.location = "bottom_right"
-    mutid_comfig.legend.click_policy = "hide"
-
-#    mutid_comm_extr.legend.location = "bottom_right"
-#    mutid_comm_extr.legend.click_policy = "hide"    
-#    
-#    # Plot the two-stage version, GA then Comm
-#    f = open('../../data/interim/mouse_twostage_test.stat')
-#    twostage = json.load(f)
-#    f.close()
-#    
-#    gagrp_fig = figure(title = "GA with GA-Comm")
-#    df_2stage = [ twostage[k][0]['tmax'] for k in range(2)]
-#    df_2stage_grp = [twostage[k][1]['tmax'] for k in range(2)]
-#    avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
-#    avg_tmax_2stg_grp = (np.mean(df_2stage_grp, axis=0).tolist())
-#    xdata = twostage[0][0]['tgen']
-#    xdata_grp = [ (twostage[0][1]['tgen'][k]+len(xdata)) for k in range(len(twostage[0][1]['tgen'])) ]
-#    #xdata = xdata + tmpx
-#    gagrp_fig.line(xdata, avg_tmax_2stg,
-#                   legend = 
-#                   "GA - Mut. = "+str(twostage[0][0]['tparam'][2])+
-#                   " , Cx = "+str(twostage[0][0]['tparam'][3]),
-#                   line_color = d3['Category20'][3][0])
-#    gagrp_fig.line(xdata_grp, avg_tmax_2stg_grp,
-#                   legend =
-#                   "GA-Comm - Mut. = "+str(twostage[0][1]['tparam'][2])+
-#                   " , Cx = "+str(twostage[0][1]['tparam'][3]),
-#                   line_color = d3['Category20'][3][2])
+    show(tabs)
     
-    show(gridplot([[cxfig, cx_comfig], [mut_fig, mut_comfig], 
-                   [mutidfig, mutid_comfig]]) )  
-#    show(column(cxfig, mut_fig, mut_comfig, mutidfig, mutid_comfig) )  
+#    show(gridplot([[cxfig, cx_comfig], [mut_fig, mut_comfig], 
+#                   [mutidfig, mutid_comfig],
+#                   [swp2x_fig, swp2xB_fig]]) )  
