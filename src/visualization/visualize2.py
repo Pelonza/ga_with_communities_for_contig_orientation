@@ -144,7 +144,8 @@ if __name__ == "__main__":
         avg_tmax = (np.mean(df, axis=0)).tolist()
         swp2x_fig.line(swp2x_A_df[0][0]['tgen'], avg_tmax, 
                        legend="Cx. = "+str(swp2x_A_df[j][0]['tparam'][3])
-                       +" Mut. = "+str(swp2x_A_df[j][0]['tparam'][2]),
+                       +" Mut. = "+str(swp2x_A_df[j][0]['tparam'][2])+
+                       " Id. Mut. = "+str(swp2x_A_df[j][0]['tparam'][4]),
                        line_color= d3['Category20'][20][j],
                        muted_alpha=0.2, alpha=1)
 
@@ -154,7 +155,7 @@ if __name__ == "__main__":
         swp2x_fig.line(swp2x_B_df[0][0]['tgen'], avg_tmax, 
                        legend="Cx. = "+str(swp2x_B_df[j][0]['tparam'][3])
                        +" Mut. = "+str(swp2x_B_df[j][0]['tparam'][2])+
-                       "Id. Mut. = "+str(swp2x_B_df[j][0]['tparam'][4]),
+                       " Id. Mut. = "+str(swp2x_B_df[j][0]['tparam'][4]),
                        line_color= d3['Category20'][20][j+3],
                        muted_alpha=0.2, alpha=1)
         
@@ -168,15 +169,10 @@ if __name__ == "__main__":
         avg_tmax = (np.mean(df, axis=0)).tolist()
         swp2xB_fig.line(swp2x_C_df[0][0]['tgen'], avg_tmax, 
                        legend="Cx. = "+str(swp2x_C_df[j][0]['tparam'][3])
-                       +" Mut. = "+str(swp2x_C_df[j][0]['tparam'][2]),
+                       +" Mut. = "+str(swp2x_C_df[j][0]['tparam'][2])+
+                       " Id. Mut. = "+str(swp2x_C_df[j][0]['tparam'][4]),
                        line_color= d3['Category20'][20][j],
                        muted_alpha=0.2, alpha=1)
-#        swp2x_fig.line(swp2x_C_df[0][0]['tgen'], avg_tmax, 
-#                       legend="Cx. = "+str(swp2x_C_df[j][0]['tparam'][3])
-#                       +" Mut. = "+str(swp2x_C_df[j][0]['tparam'][2])+
-#                       "Id. Mut. = "+str(swp2x_C_df[j][0]['tparam'][4]),
-#                       line_color= d3['Category20'][20][j],
-#                       muted_alpha=0.2, alpha=1)
         
         
     #  Move all the legends and set the interactions to hide unwanted lines.    

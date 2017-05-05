@@ -42,6 +42,7 @@ from bokeh.plotting import figure, output_file, show
 from bokeh.layouts import row, column, gridplot
 from bokeh.palettes import d3
 from bokeh.models import ColumnDataSource
+from bokeh.models.widgets import DataTable, TableColumn
 import json
 import os
 import numpy as np
@@ -281,8 +282,8 @@ def append_data(cls_scr, xdata, ydata, xmstd, ymstd):
     # Little helper function to hide repeated data appends.
     xdata += [np.mean([cls_scr[k]['emean'] for k in range(len(cls_scr))])]
     ydata += [np.mean([cls_scr[k]['imean'] for k in range(len(cls_scr))])]
-    xmstd += [np.std([cls_scr[k]['emean'] for k in range(len(cls_scr))])]/np.sqrt(len(cls_scr))
-    ymstd += [np.std([cls_scr[k]['imean'] for k in range(len(cls_scr))])]/np.sqrt(len(cls_scr))
+    xmstd += [np.std([cls_scr[k]['emean'] for k in range(len(cls_scr))])/np.sqrt(len(cls_scr))]
+    ymstd += [np.std([cls_scr[k]['imean'] for k in range(len(cls_scr))])/np.sqrt(len(cls_scr))]
     return
 
 def errorbar(fig, x, y, xerr=None, yerr=None, color='red', 
@@ -311,7 +312,7 @@ if __name__ == "__main__":
     
     
     args = get_parser().parse_args()
-    output_file("test4.html")
+    output_file("MultiAlgs_Inn_Out_fit_plot_table.html")
 
     # Load the turkey orientations and compute clusters for them.
     G_full = load_data('../../data/raw/Turkey/orientations_tallies')
@@ -328,59 +329,56 @@ if __name__ == "__main__":
     
     p = figure(x_axis_label = 'Average External Fitness', y_axis_label = 'Average Internal Fitness')
 
-    # Plot the two-stage version, GA then Comm
-    df = load('../../data/turkey_prgacm.stat')
+    #  Add a preoriented comm-ga point. 
+    df = load('../../data/turkey_prcmga.sat')
 #    df += load('../../data/interim/turkey_preort_cmga_B.stat')
     
-    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(2) ] #range(len(df))]
+    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(len(df))]
     append_data(cls_scr, xdata, ydata, xmstd, ymstd)
     labels += ['Node-Centric with Comm - GA']
     color += [d3['Category20'][20][0]]
     
-#    #  Add the Preoriented ga-comm data point.
-#    df = load('../../data/interim/turkey_preot_gacm_A.stat')
-#    df += load('../../data/interim/turkey_preort_gacm_B.stat')
+    #  Add the Preoriented ga-comm data point.
+    df = load('../../data/turkey_prgacm.stat')
+        
+    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(len(df))]
+    append_data(cls_scr, xdata, ydata, xmstd, ymstd)
+    labels += ['Node-Centric with GA-Comm']
+    color += [d3['Category20'][20][1]]
+    
+    #  Add the preoriented ga point.
+    df = load('../../data/turkey_prga_A.stat')
+    df += load('../../data/turkey_prga_B.stat')
+    
+    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][1]) for k in range(len(df))]
+    append_data(cls_scr, xdata, ydata, xmstd, ymstd)
+    labels += ['Node-Centric with GA']
+    color += [d3['Category20'][20][2]]
 #    
-#    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(2) ] #range(len(df))]
-#    append_data(cls_scr, xdata, ydata)
-#    labels += ['Node-Centric with GA-Comm']
-#    color += [d3['Category20'][20][1]]
-#    
-#    #  Add the preoriented ga point.
-#    df = load('../../data/interim/turkey_preort_ga_A.stat')
-#    df += load('../../data/interim/turkey_preort_ga_B.stat')
-#    
-#    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][1]) for k in range(2) ] #range(len(df))]
-#    append_data(cls_scr, xdata, ydata)
-#    labels += ['Node-Centric with GA']
-#    color += [d3['Category20'][20][2]]
-#    
-#    # Add the Comm-GA point
-#    df = load('../../data/interim/turkey_cmga_A2.stat')
-#    df += load('../../data/interim/turkey_cmga_B2.stat')
-#    
-#    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(2) ] #range(len(df))]
-#    append_data(cls_scr, xdata, ydata)
-#    labels += ['Comm - GA']
-#    color += [d3['Category20'][20][3]]
-#    
-#    #  Add the Preoriented ga-comm data point.
-#    df = load('../../data/interim/turkey_gacm_B3.stat')
-#    df += load('../../data/interim/turkey_gacm_B4.stat')
-#    
-#    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(2) ] #range(len(df))]
-#    append_data(cls_scr, xdata, ydata)
-#    labels += ['GA-Comm']
-#    color += [d3['Category20'][20][4]]
-#
-#    #  Add the preoriented ga point.
-#    df = load('../../data/interim/turkey_longGA_A.stat')
-#    df += load('../../data/interim/turkey_longGA_B.stat')
-#    
-#    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][1]) for k in range(2) ] #range(len(df))]
-#    append_data(cls_scr, xdata, ydata)
-#    labels += ['GA']
-#    color += [d3['Category20'][20][5]]
+    # Add the Comm-GA point
+    df = load('../../data/turkey_cmga.stat')
+        
+    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(len(df))]
+    append_data(cls_scr, xdata, ydata, xmstd, ymstd)
+    labels += ['Comm - GA']
+    color += [d3['Category20'][20][3]]
+    
+    #  Add the ga-comm data point.
+    df = load('../../data/turkey_gacm.stat')
+    
+    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(len(df))]
+    append_data(cls_scr, xdata, ydata, xmstd, ymstd)
+    labels += ['GA-Comm']
+    color += [d3['Category20'][20][4]]
+
+    #  Add the preoriented ga point.
+    df = load('../../data/interim/turkey_longGA_A.stat')
+    df += load('../../data/interim/turkey_longGA_B.stat')
+    
+    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][1]) for k in range(len(df))]
+    append_data(cls_scr, xdata, ydata, xmstd, ymstd)
+    labels += ['GA']
+    color += [d3['Category20'][20][5]]
 
     node_ort = node_centric(G_full)
     cls_scr = [Internal_External(G_full, G_full_clusters, node_ort)]
@@ -393,134 +391,27 @@ if __name__ == "__main__":
     labels += ['Naive Ideal']
     color += [d3['Category20'][20][7]]
     
-    
-    p.legend.click_policy = "hide"
-    p.legend.location = "bottom_right"
-    
-    source = ColumnDataSource(dict(x=xdata, y=ydata, colors= color, label = labels))
+    source = ColumnDataSource(dict(x=xdata, y=ydata, colors= color, label = labels, xerr = xmstd, yerr = ymstd))
     
     p.circle(x = 'x', y = 'y', color = 'colors', legend = 'label', source = source)
     
     errorbar(p, xdata, ydata, xmstd, ymstd)
     
-    show(p)
+    p.legend.click_policy = "hide"
+    p.legend.location = "bottom_right"
     
-#     ydata = []
-#    # For each trial in the data-frame, recompute the max fitness scores
-#    for i in range(len(pcmga_df)):
-#        cls_scr = Internal_External(G_full, G_full_clusters, null_ort)
-#        ydata = ydata + (pcmga_df[i][0]['tmax']*cls_scr['ecount'] + cls_scr['icount']*cls_scr['imean'])/ (cls_scr['ecount']+cls_scr['icount'])
-#    
-#    
-#    
-#    # Note: If I make the ranges dynamic based on the runs, I can reuse these
-#    # no matter how many trials I do.... 
-#    gagrp_fig = figure(title = "Turkey GA with GA-Comm")
-#    df_2stage = [ twostage[k][0]['tmax'] for k in range(50)]
-#    df_2stage_grp = [twostage[k][1]['tmax'] for k in range(50)]
-#    avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
-#    avg_tmax_2stg_grp = (np.mean(df_2stage_grp, axis=0).tolist())
-#    xdata = twostage[0][0]['tgen']
-#    xdata_grp = [ (twostage[0][1]['tgen'][k]+len(xdata)) for k in range(len(twostage[0][1]['tgen'])) ]
-#    #xdata = xdata + tmpx
-#    gagrp_fig.line(xdata, avg_tmax_2stg,
-#                   legend = 
-#                   "GA - Mut. = "+str(twostage[0][0]['tparam'][2])+
-#                   " , Cx = "+str(twostage[0][0]['tparam'][3]),
-#                   line_color = d3['Category20'][3][0])
-#    gagrp_fig.line(xdata_grp, avg_tmax_2stg_grp,
-#                   legend =
-#                   "GA-Comm - Mut. = "+str(twostage[0][1]['tparam'][2])+
-#                   " , Cx = "+str(twostage[0][1]['tparam'][3]),
-#                   line_color = d3['Category20'][3][2])
-#    
-#    gagrp_fig.legend.location = "bottom_right"
-#    gagrp_fig.legend.click_policy = "mute"
-#    
-#    # Plot the two-stage version, Comm then GA
-#    grpga_fig = figure(title = "Turkey Comm-GA with GA")
-#        
-#    f = open('../../data/interim/turkey_twostage_cmga_A.stat')
-#    twostage = json.load(f)
-#    f.close()
-#    
-#    df_2stage = [ twostage[k][0]['tmax'] for k in range(16)]
-#    df_2stage_grp = [twostage[k][1]['tmax'] for k in range(16)]
-#    cm_cls_scr = [ twostage[k][2]['postcommclsscr'] for k in range(len(twostage))]
-#    ga_cls_scr = [ twostage[k][2]['postgaclsscr'] for k in range(len(twostage))]
-#    
-#    f = open('../../data/interim/turkey_twostage_cmga_B.stat')
-#    twostage = json.load(f)
-#    f.close()
-#    
-#    df_2stage = df_2stage + [ twostage[k][0]['tmax'] for k in range(16)]
-#    df_2stage_grp = df_2stage_grp + [twostage[k][1]['tmax'] for k in range(16)]
-#    cm_cls_scr = cm_cls_scr + [ twostage[k][2]['postcommclsscr'] for k in range(len(twostage))]
-#    ga_cls_scr = ga_cls_scr + [ twostage[k][2]['postgaclsscr'] for k in range(len(twostage))]
-#    
-#    f = open('../../data/interim/turkey_twostage_cmga_C.stat')
-#    twostage = json.load(f)
-#    f.close()
-#    
-#    df_2stage = df_2stage + [ twostage[k][0]['tmax'] for k in range(16)]
-#    df_2stage_grp = df_2stage_grp + [twostage[k][1]['tmax'] for k in range(16)]        
-#    cm_cls_scr = cm_cls_scr + [ twostage[k][2]['postcommclsscr'] for k in range(len(twostage))]
-#    ga_cls_scr = ga_cls_scr + [ twostage[k][2]['postgaclsscr'] for k in range(len(twostage))]
-#
-#    ifit_tmp = [ cm_cls_scr[k]['ifit'] for k in range(len(cm_cls_scr))]
-#    efit_tmp = [ cm_cls_scr[k]['efit'] for k in range(len(cm_cls_scr))]
-#    tcmga_mrg_imean = np.nanmean(ifit_tmp)
-#    tcmga_mrg_emean = np.nanmean(efit_tmp)
-#    
-#    
-#    ifit_tmp = [ ga_cls_scr[k]['ifit'] for k in range(len(ga_cls_scr))]
-#    efit_tmp = [ ga_cls_scr[k]['efit'] for k in range(len(ga_cls_scr))]
-#    tcmga_ga_imean = np.nanmean(ifit_tmp)
-#    tcmga_ga_emean = np.nanmean(efit_tmp)
-#
-#    avg_tmax_2stg = (np.mean(df_2stage, axis=0).tolist())
-#    avg_tmax_2stg_grp = (np.mean(df_2stage_grp, axis=0).tolist())
-#    xdata = twostage[0][0]['tgen']
-#    xdata_grp = [ (twostage[0][1]['tgen'][k]+len(xdata)) for k in range(len(twostage[0][1]['tgen'])) ]
-#    #xdata = xdata + tmpx
-#    grpga_fig.line(xdata, avg_tmax_2stg,
-#                   legend = 
-#                   "GA - Mut. = "+str(twostage[0][0]['tparam'][2])+
-#                   " , Cx = "+str(twostage[0][0]['tparam'][3]),
-#                   line_color = d3['Category20'][3][0])
-#    grpga_fig.line(xdata_grp, avg_tmax_2stg_grp,
-#                   legend =
-#                   "GA-Comm - Mut. = "+str(twostage[0][1]['tparam'][2])+
-#                   " , Cx = "+str(twostage[0][1]['tparam'][3]),
-#                   line_color = d3['Category20'][3][2])
-#
-#    grpga_fig.legend.location = "bottom_right"
-#    grpga_fig.legend.click_policy = "mute"
-#    
-#    f=open('../../data/interim/turkey_longGA_A.stat','r')
-#    tlonga = json.load(f)
-#    f.close()
-#    tmp = [ [tlonga[k][2][j]['max'] for j in range(10001)] for k in range(16)]
-#    
-#    f=open('../../data/interim/turkey_longGA_B.stat','r')
-#    tlongb = json.load(f)
-#    f.close()
-#    tmp = tmp + [ [tlongb[k][2][j]['max'] for j in range(10001)] for k in range(16)]
-#    
-#    f=open('../../data/interim/turkey_longGA_C.stat','r')
-#    tlongc = json.load(f)
-#    f.close()
-#    tlong = tmp + [ [tlongc[k][2][j]['max'] for j in range(10001)] for k in range(16)]
-#
-#    tlong_fig = figure(title = "High Generation GA on Turkey")
-#    avg_max_long = (np.mean(tlong, axis=0).tolist())
-#    xdata = [ tlonga[0][2][j]['gen'] for j in range(10001)]
-#    tlong_fig.line(xdata, avg_max_long,
-#               legend = "Mut. = 0.3" + " , Cx. = 0.9")
-#    
-#    tlong_fig.legend.location = "bottom_right"
-#
-#
-#    show(gridplot([[tlong_fig, None],
-#                   [gagrp_fig, grpga_fig]]))
-#    show(column(cxfig, mut_fig, mut_comfig, mutidfig, mutid_comfig) )  
+    columns = [
+            TableColumn(field = "label", title = "Algorithm(s)"),
+            TableColumn(field = "x", title = "Ext. Fitness"),
+            TableColumn(field = "xerr", title = "E. Fit. Std. Mean Error"),
+            TableColumn(field = "y", title = "Int. Fitness"),
+            TableColumn(field = "yerr", title = "Int. Fit. Std. Mean Error")]
+    
+    #source2 = ColumnDataSource(data=dict())
+    #source2.data = { 'algs':labels, 'xdata':xdata, 'xmstd':xmstd, 'ydata':ydata, 'ymstd':ymstd}
+    
+    data_table = DataTable(source=source, columns=columns, row_headers= False, width=800)
+    
+    
+    
+    show(column(p, data_table))
