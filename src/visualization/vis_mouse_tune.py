@@ -29,88 +29,61 @@ import json
 import os
 import numpy as np
 
-
-def get_parser():
-    """Get parser object for script xy.py."""
-    from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-    parser = ArgumentParser(description=__doc__,
-                            formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-i", "--ifile",
-                        dest="ifilename",
-                        type=lambda x: is_valid_file(parser, x),
-                        help="Read tallies from FILE",
-                        metavar="FILE")
-#    parser.add_argument("-o", "--ofile",
-#                        dest="oorient",
-#                        help="Write best orientation to FILE",
-#                        metavar="FILE")
-#    parser.add_argument("-s", "--sfile",
-#                        dest="output_stats",
-#                        help="Write statistics to FILE",
-#                        metavar="FILE")
-#    parser.add_argument("-n",
-#                        dest="ntrials",
-#                        default=50,
-#                        type=int,
-#                        help="how many trials to do per parameter set")
-#    parser.add_argument("-q", "--quiet",
-#                        action="store_false",
-#                        dest="verbose",
-#                        default=True,
-#                        help="don't print status messages to stdout")
-    return parser
-
-def is_valid_file(parser, arg):
-    """
-    Check if arg is a valid file that already exists on the file system.
-
-    Parameters
-    ----------
-    parser : argparse object
-    arg : str
-
-    Returns
-    -------
-    arg
-    """
-    arg = os.path.abspath(arg)
-    if not os.path.exists(arg):
-        parser.error("The file %s does not exist!" % arg)
-    else:
-        return arg
 # %%
+def load(ifile):
+    # Little helper function to hide repeated lines for opening files.
+    f = open(ifile,'r')
+    df = json.load(f)
+    f.close()
+    
+    return df
+
 if __name__ == "__main__":
     
+    # =================
+    # Load all the data
+    # =================
     
-    args = get_parser().parse_args()
+    # Load all the 20-value data files
+    M_cx = load('../../data/interim/mouse_cx.stat')
+    M_mut = load('../../data/interim/mouse_mut.stat')
+    M_cx_comm = load('../../data/interim/mouse_cx_comm_B.stat')
+    M_mut_comm = load('../../data/interim/mouse_mut_comm.stat')
+    swp2x_C_df = load('../../data/interim/mouse_2xswp_30_50mut_35_50cx.stat')
     
-    mypal = pal.inferno(20)
+    # Put sources that have 20 values to plot in list.
+    sources_20v = [M_cx, M_mut, M_cx_comm, M_mut_comm, swp2x_C_df]
     
-    f = open('../../data/interim/mouse_cx.stat','r')
-    M_cx = json.load(f)
-    f.close()
+    # Load all the 10-value date files
+    M_mutid = load('../../data/interim/mouse_mutidpb.stat')
+    M_mutid_comm = load('../../data/interim/mouse_mutID_comm2.stat')
     
-    f = open('../../data/interim/mouse_mut.stat','r')
-    M_mut = json.load(f)
-    f.close()
+    # Put sources with 10-values together
+    sources_10v = [M_mutid, M_mutid_comm]
     
-    f = open('../../data/interim/mouse_cx_comm_B.stat','r')
-    M_cx_comm = json.load(f)
-    f.close()
+    # Load 6 - value, 2-paired trial data
+    More_mutidcomm = load('../../data/interim/mouse_mutidpb_2d5_15_by_2d5_comm.stat')
+    More_mutid = load('../../data/interim/mouse_mutidpb_2d5_15_by_2d5.stat')
     
-    f = open('../../data/interim/mouse_mut_comm.stat','r')
-    M_mut_comm = json.load(f)
-    f.close()
+    # Put sources together
+    sources_6v = [More_mutidcomm, More_mutid]
     
-    f = open('../../data/interim/mouse_mutidpb.stat','r')
-    M_mutid = json.load(f)
-    f.close()
-    
-    f = open('../../data/interim/mouse_mutID_comm2.stat','r')
-    M_mutid_comm = json.load(f)
-    f.close()
+    # Load 2x Parameter sweeps. These are funny indexing!
+    swp2x_A_df = load('../../data/interim/mouse_2xswp_15_30mut_20_30cx.stat')
+    swp2x_B_df = load('../../data/interim/mouse_2xswp_15_40mut_15_35cx.stat')
     
     
+    # Plan is to create lists of the figures, zip them with list of sources
+    # then every loop that has multiple data entries can be condensed. 
+    # See sample below:
+#    sources = ['mx1', 'mx2']
+#
+#    figs = ['fig1', 'fig2']
+#    
+#    for source, fig in zip(sources, figs):
+#        print(source)
+#        print(fig)
+
     output_file("test.html")
     cxfig=figure(title="Crossover Parameter Sweep")
     cx_comfig=figure(title="Crossover Parameter Sweep on Communities")
@@ -161,13 +134,7 @@ if __name__ == "__main__":
                       legend="Ind. Mut. = "+str(M_mutid_comm[j][0]['tparam'][4]),
                       line_color=d3['Category20'][15][j], alpha=1)
     
-    f = open('../../data/interim/mouse_mutidpb_2d5_15_by_2d5_comm.stat','r')
-    More_mutidcomm = json.load(f)
-    f.close()
-    
-    f = open('../../data/interim/mouse_mutidpb_2d5_15_by_2d5.stat','r')
-    More_mutid = json.load(f)
-    f.close()
+ 
 
 #    mutid_comm_extr = figure(title="Finer Sweep of Independent Mutation on Communities")
 #    mutid_extr = figure(title="Finer Sweep of Independent Mutation")
@@ -185,16 +152,9 @@ if __name__ == "__main__":
         mutidfig.line(More_mutid[0][0]['tgen'], avg_tmax_extra,
                           legend = "Ind. Mut. = "+str(More_mutid[j][0]['tparam'][4]),
                           line_color=d3['Category20'][12][j], alpha = 1)
+ 
     
-    # Load 2x Parameter sweeps. These are funny indexing!
-    f = open('../../data/interim/mouse_2xswp_15_30mut_20_30cx.stat','r')
-    swp2x_A_df = json.load(f)
-    f.close()
-
-    f = open('../../data/interim/mouse_2xswp_15_40mut_15_35cx.stat','r')
-    swp2x_B_df = json.load(f)
-    f.close()
-
+    
     swp2x_fig = figure(title = "Sweeping Two Parameters - Mouse")
     for j in range(3):
         df = [swp2x_A_df[j][k]['tmax'] for k in range(50)]
@@ -216,10 +176,7 @@ if __name__ == "__main__":
                        line_color= d3['Category20'][20][j+3],
                        muted_alpha=0.2, alpha=1)
         
-    f = open('../../data/interim/mouse_2xswp_30_50mut_35_50cx.stat','r')
-    swp2x_C_df = json.load(f)
-    f.close()
-
+    
     swp2xB_fig = figure(title = "Sweeping Two Parameters B- Mouse")
     for j in range(20):
         df = [swp2x_C_df[j][k]['tmax'] for k in range(len(swp2x_C_df[0][0]))]
