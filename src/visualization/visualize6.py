@@ -279,7 +279,7 @@ if __name__ == "__main__":
     p = figure(x_axis_label = 'Average External Fitness', y_axis_label = 'Average Internal Fitness')
 
     #  Add a preoriented comm-ga point. 
-    df = load('../../data/turkey_prcmga.sat')
+    df = load('../../data/turkey_prcmga.stat')
 #    df += load('../../data/interim/turkey_preort_cmga_B.stat')
     
     cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(len(df))]

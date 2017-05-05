@@ -196,7 +196,7 @@ if __name__ == "__main__":
                        line_color= d3['Category20'][20][j],
                        muted_alpha=0.2, alpha=1)
 
-    for fig in figs_full+figs_comm:
+    for fig in figs_full+figs_comm+figs_2x:
         #Set a whole slew of things to make pretty pictures!
         fig.xaxis.axis_label = "Iteration"
         fig.yaxis.axis_label = "Fitness"
@@ -215,10 +215,12 @@ if __name__ == "__main__":
         fig.y_range = Range1d(0.55, 0.7)
         fig.x_range = Range1d(0,4500)
 
-    
-    tab1 = Panel(child=figs_comm, title = "By Communities")
-    tab2 = Panel(child=figs_full, title = "All Mate-Pairs")
-    tab3 = Panel(child=figs_2x, title = "2 Changing Parameters")
+    lay1 = column([cx_comfig, mut_comfig, mutid_comfig])
+    lay2 = column([cxfig, mut_fig, mutidfig])
+    lay3 = row([swp2x_fig, swp2xB_fig])
+    tab1 = Panel(child=lay1, title = "By Communities")
+    tab2 = Panel(child=lay2, title = "All Mate-Pairs")
+    tab3 = Panel(child=lay3, title = "2 Changing Parameters")
     
     tabs = Tabs(tabs = [tab1, tab2, tab3])
 
