@@ -160,17 +160,24 @@ if __name__ == "__main__":
     labels += ['Node-Centric with GA']
     color += [d3['Category20'][20][2]]
     
-    ifile = '../../data/turkey_cmga.stat'
-    ofile = '../../data/t-cmga-cls'
-    pickle_clsdata(ifile, ofile)
-    
-    ifile = '../../data/turkey_gacm.stat'
-    ofile = '../../data/t-gacm-cls'
-    pickle_clsdata(ifile, ofile)
-    
-    ifile = '../../data/turkey_longGA_A.stat'
-    ifile2 = '../../data/turkey_longGA_B.stat'
-    ofile = '../../data/t-longGA-cls'
+    # Add the Comm-GA point
+    ifile = '../../data/t-cmga-cls'
+    append_data_file(ifile, xdata, ydata, xmstd, ymstd)
+    labels += ['Comm - GA']
+    color += [d3['Category20'][20][3]]
+
+    #  Add the ga-comm data point.
+    ifile = '../../data/t-gacm-cls'
+    append_data(ifile, xdata, ydata, xmstd, ymstd)
+    labels += ['GA-Comm']
+    color += [d3['Category20'][20][4]]
+
+    #  Add the preoriented ga point.
+    ifile = '../../data/t-longGA-cls'
+    append_data_file(ifile, xdata, ydata, xmstd, ymstd)
+    labels += ['GA']
+    color += [d3['Category20'][20][5]]
+
     pickle_clsdata(ifile, ofile, ifile2)
     
     # We don't need to parallize the next two since there's only ort each!
@@ -183,42 +190,8 @@ if __name__ == "__main__":
     with open('../../data/interim/t-naive-cls','wb') as f:
         pickle.dump(cls_scr,f)
 
-
-    
-    #  Add the Preoriented ga-comm data point.
-    df = load('../../data/turkey_prgacm.stat')
-        
-    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(len(df))]
-    append_data(cls_scr, xdata, ydata, xmstd, ymstd)
-    labels += ['Node-Centric with GA-Comm']
-    color += [d3['Category20'][20][1]]
     
 
-#    
-    # Add the Comm-GA point
-    df = load('../../data/turkey_cmga.stat')
-        
-    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(len(df))]
-    append_data(cls_scr, xdata, ydata, xmstd, ymstd)
-    labels += ['Comm - GA']
-    color += [d3['Category20'][20][3]]
-    
-    #  Add the ga-comm data point.
-    df = load('../../data/turkey_gacm.stat')
-    
-    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(len(df))]
-    append_data(cls_scr, xdata, ydata, xmstd, ymstd)
-    labels += ['GA-Comm']
-    color += [d3['Category20'][20][4]]
-
-    #  Add the preoriented ga point.
-    df = load('../../data/interim/turkey_longGA_A.stat')
-    df += load('../../data/interim/turkey_longGA_B.stat')
-    
-    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][1]) for k in range(len(df))]
-    append_data(cls_scr, xdata, ydata, xmstd, ymstd)
-    labels += ['GA']
-    color += [d3['Category20'][20][5]]
 
     node_ort = node_centric(G_full)
     cls_scr = [Internal_External(G_full, G_full_clusters, node_ort)]
