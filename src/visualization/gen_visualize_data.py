@@ -226,12 +226,19 @@ def load_data(input_filename):
         
     return ig_G
 
-def pickle_clsdata(ifile, ofile):
-    # Little helper function to hide repeated pickling lines.
+def pickle_clsdata(ifile, ofile, ifile2 = None):
+    # Little helper function to hide repeated load, open, and pickle lines
+    # This also parallizes the computations of the cluster scores!
+    
     global G_full
     global G_full_clusters
     with open(ifile,'r') as f:
         df = json.load(f)
+    
+    if ifile2:
+        with open(ifile2,'r') as f:
+            df += json.load(f)
+        
 
     ortsdata = [df[k][2]['merged_ort'] for k in range(len(df))]
     par_data = zip([G_full]*len(df), [G_full_clusters]*len(df), ortsdata)
@@ -244,113 +251,57 @@ def pickle_clsdata(ifile, ofile):
 
 # %%
 if __name__ == "__main__":
+
+    global G_full
+    global G_full_clusters
     
     # Load the turkey orientations and compute clusters for them.
     G_full = load_data('../../data/raw/Turkey/orientations_tallies')
     G_full_dendrogram = G_full.community_fastgreedy(weights="mates")
     G_full_clusters = G_full_dendrogram.as_clustering()
     
-    global G_full
-    global G_full_clusters
+
 
     #  Add a preoriented comm-ga point. 
     ifile = '../../data/turkey_prcmga.stat'
     ofile = '../../data/interim/t-prcmga-cls'
     pickle_clsdata(ifile, ofile)
     
-    with open('../../data/interim/t-prcmga-cls', 'rb') as f:
-        df = pickle.load(f)
-    
-    print(len(df))
-    print(df[0].keys())
-    
-#    df += load('../../data/interim/turkey_preort_cmga_B.stat')
-    
-#    ortsdata = [df[k][2]['merged_ort'] for k in range(len(df))]
-#    par_data = zip([G_full]*len(df), [G_full_clusters]*len(df), ortsdata)
-#    cls_scr = list(futures.map(Internal_External, par_data))
+#   Some quick code for testing if things got pickled and unpickled correctly
+#    with open('../../data/interim/t-prcmga-cls', 'rb') as f:
+#        df = pickle.load(f)
 #    
-#    with open(, 'wb') as f:
-#        pickle.dump(cls_scr, f)
-#    
-    #  Add the Preoriented ga-comm data point.
-#    df = load('../../data/turkey_prgacm.stat')
-        
-#    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(len(df))]
-    
+#    print(len(df))
+#    print(df[0].keys())
 
-
-
-##    append_data(cls_scr, xdata, ydata, xmstd, ymstd)
-##    labels += ['Node-Centric with GA-Comm']
-##    color += [d3['Category20'][20][1]]
-#    
-#    #  Add the preoriented ga point.
-#    df = load('../../data/turkey_prga_A.stat')
-#    df += load('../../data/turkey_prga_B.stat')
-#    
-#    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][1]) for k in range(len(df))]
-##    append_data(cls_scr, xdata, ydata, xmstd, ymstd)
-##    labels += ['Node-Centric with GA']
-##    color += [d3['Category20'][20][2]]
-##    
-#    # Add the Comm-GA point
-#    df = load('../../data/turkey_cmga.stat')
-#        
-#    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(len(df))]
-##    append_data(cls_scr, xdata, ydata, xmstd, ymstd)
-##    labels += ['Comm - GA']
-##    color += [d3['Category20'][20][3]]
-#    
-#    #  Add the ga-comm data point.
-#    df = load('../../data/turkey_gacm.stat')
-#    
-#    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][2]['merged_ort']) for k in range(len(df))]
-##    append_data(cls_scr, xdata, ydata, xmstd, ymstd)
-##    labels += ['GA-Comm']
-##    color += [d3['Category20'][20][4]]
-#
-#    #  Add the preoriented ga point.
-#    df = load('../../data/interim/turkey_longGA_A.stat')
-#    df += load('../../data/interim/turkey_longGA_B.stat')
-#    
-#    cls_scr = [Internal_External(G_full,G_full_clusters, df[k][1]) for k in range(len(df))]
-##    append_data(cls_scr, xdata, ydata, xmstd, ymstd)
-##    labels += ['GA']
-##    color += [d3['Category20'][20][5]]
-#
-#    node_ort = node_centric(G_full)
-#    cls_scr = [Internal_External(G_full, G_full_clusters, node_ort)]
-##    append_data(cls_scr, xdata, ydata, xmstd, ymstd)
-##    labels += ['Node-Centric']
-##    color += [d3['Category20'][20][6]]
-#    
-#    cls_scr = [Internal_External_naive(G_full, G_full_clusters)]
-##    append_data(cls_scr, xdata, ydata, xmstd, ymstd)
-##    labels += ['Naive Ideal']
-##    color += [d3['Category20'][20][7]]
+    ifile = '../../data/turkey_prgacm.stat'
+    ofile = '../../data/interim/t-prgacm-cls'
+    pickle_clsdata(ifile, ofile)
     
-#    source = ColumnDataSource(dict(x=xdata, y=ydata, colors= color, label = labels, xerr = xmstd, yerr = ymstd))
-#    
-#    p.circle(x = 'x', y = 'y', color = 'colors', legend = 'label', source = source)
-#    
-#    errorbar(p, xdata, ydata, xmstd, ymstd)
-#    
-#    p.legend.click_policy = "hide"
-#    p.legend.location = "bottom_right"
-#    
-#    columns = [
-#            TableColumn(field = "label", title = "Algorithm(s)"),
-#            TableColumn(field = "x", title = "Ext. Fitness"),
-#            TableColumn(field = "xerr", title = "E. Fit. Std. Mean Error"),
-#            TableColumn(field = "y", title = "Int. Fitness"),
-#            TableColumn(field = "yerr", title = "Int. Fit. Std. Mean Error")]
-#    
-#    #source2 = ColumnDataSource(data=dict())
-#    #source2.data = { 'algs':labels, 'xdata':xdata, 'xmstd':xmstd, 'ydata':ydata, 'ymstd':ymstd}
-#    
-#    data_table = DataTable(source=source, columns=columns, row_headers= False, width=800)
-#    
-#    
-#    
-#    show(column(p, data_table))
+    ifile = '../../data/turkey_prga_A.stat'
+    ifile2 = '../../data/turkey_prga_B.stat'
+    ofile = '../../data/interim/t-prga-cls'
+    pickle_clsdata(ifile, ofile, ifile2)
+    
+    ifile = '../../data/turkey_cmga.stat'
+    ofile = '../../data/t-cmga-cls'
+    pickle_clsdata(ifile, ofile)
+    
+    ifile = '../../data/turkey_gacm.stat'
+    ofile = '../../data/t-gacm-cls'
+    pickle_clsdata(ifile, ofile)
+    
+    ifile = '../../data/turkey_longGA_A.stat'
+    ifile2 = '../../data/turkey_longGA_B.stat'
+    ofile = '../../data/t-longGA-cls'
+    pickle_clsdata(ifile, ofile, ifile2)
+    
+    # We don't need to parallize the next two since there's only ort each!
+    node_ort = node_centric(G_full)
+    cls_scr = [Internal_External(G_full, G_full_clusters, node_ort)]
+    with open('../../data/interim/t-node-cls','wb') as f:
+        pickle.dump(cls_scr,f)
+    
+    cls_scr = [Internal_External_naive(G_full, G_full_clusters)]
+    with open('../../data/interim/t-naive-cls','wb') as f:
+        pickle.dump(cls_scr,f)
