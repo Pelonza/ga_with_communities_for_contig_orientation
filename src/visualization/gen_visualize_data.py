@@ -246,7 +246,7 @@ def pickle_clsdata(ifile, ofile, ifile2 = None):
     par_data = zip([G_full]*len(df), [G_full_clusters]*len(df), ortsdata)
     cls_scr = list(futures.map(Internal_External, par_data))
     
-    with open('../../data/interim/t-prcmga-cls', 'wb') as f:
+    with open(ofile, 'wb') as f:
         pickle.dump(cls_scr, f)
     
     return
@@ -300,7 +300,7 @@ if __name__ == "__main__":
     
     # We don't need to parallize the next two since there's only ort each!
     node_ort = node_centric(G_full)
-    cls_scr = [Internal_External(G_full, G_full_clusters, node_ort)]
+    cls_scr = [Internal_External(list([G_full, G_full_clusters, node_ort]))]
     with open('../../data/interim/t-node-cls','wb') as f:
         pickle.dump(cls_scr,f)
     
