@@ -286,11 +286,11 @@ if __name__ == "__main__":
     pickle_clsdata(ifile, ofile, ifile2)
     
     ifile = '../../data/turkey_cmga.stat'
-    ofile = '../../data/t-cmga-cls'
+    ofile = '../../data/interim/t-cmga-cls'
     pickle_clsdata(ifile, ofile)
     
     ifile = '../../data/turkey_gacm.stat'
-    ofile = '../../data/t-gacm-cls'
+    ofile = '../../data/interim/t-gacm-cls'
     pickle_clsdata(ifile, ofile)
     
     ifile = '../../data/turkey_longGA_A.stat'
