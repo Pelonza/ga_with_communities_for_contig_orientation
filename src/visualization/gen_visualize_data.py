@@ -238,9 +238,11 @@ def pickle_clsdata(ifile, ofile, ifile2 = None):
     if ifile2:
         with open(ifile2,'r') as f:
             df += json.load(f)
-        
+            
+        ortsdata = [df[k][1] for k in range(len(df))]
+    else:
+        ortsdata = [df[k][2]['merged_ort'] for k in range(len(df))]
 
-    ortsdata = [df[k][2]['merged_ort'] for k in range(len(df))]
     par_data = zip([G_full]*len(df), [G_full_clusters]*len(df), ortsdata)
     cls_scr = list(futures.map(Internal_External, par_data))
     
@@ -293,7 +295,7 @@ if __name__ == "__main__":
     
     ifile = '../../data/turkey_longGA_A.stat'
     ifile2 = '../../data/turkey_longGA_B.stat'
-    ofile = '../../data/t-longGA-cls'
+    ofile = '../../data/interim/t-longGA-cls'
     pickle_clsdata(ifile, ofile, ifile2)
     
     # We don't need to parallize the next two since there's only ort each!
