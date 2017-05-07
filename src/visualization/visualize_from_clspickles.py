@@ -43,13 +43,14 @@ from bokeh.layouts import row, column, gridplot
 from bokeh.palettes import d3
 from bokeh.models import ColumnDataSource
 from bokeh.models.widgets import DataTable, TableColumn
-from bokeh.models.widgets.tables import NumberFormatter
+from bokeh.models.widgets import NumberFormatter
 import json
 import numpy as np
 import networkx as nx
 import igraph as ig
 import pickle
 import scipy.stats as scs
+import pandas as pd
 
 def load_data(input_filename):
     # Read in tally file, assuming a 6-column format, no duplicated edges
@@ -146,7 +147,7 @@ def mannw(files, labels):
     cls_scrs = []
     for fname in files:
         with open(fname, 'rb') as f:
-            cls_scr += [pickle.load(f)]
+            cls_scrs.append(pickle.load(f))
     
     mwu_e = np.zeros((len(files), len(files)))
     mwu_i = np.zeros((len(files), len(files)))
@@ -154,16 +155,19 @@ def mannw(files, labels):
 
     for i in range(len(files)):
         for j in range(len(files)):
-            x = [cls_scrs[i][k]['emean'] for k in range(len(cls_scrs[i]))]
-            y = [cls_scrs[j][k]['emean'] for k in range(len(cls_scrs[j]))]
-            mwu_e[i,j] = scs.mannwhitneyu(x,y, alternative = 'two-sided')
-            x = [cls_scrs[i][k]['imean'] for k in range(len(cls_scrs[i]))]
-            y = [cls_scrs[j][k]['imean'] for k in range(len(cls_scrs[j]))]
-            mwu_i[i,j] = scs.mannwhitneyu(x,y, alternative = 'two-sided')
-            c_i_fits = compute_totalfit(cls_scrs[i])
-            c_j_fits = compute_totalfit(cls_scrs[j])
-            mwu_t[i,j] = scs.mannwhitneyu(c_i_fits, c_j_fits, alternative = 'two-sided')
-            
+            if i != j :
+                #print(list([labels[i], labels[j]]))
+                x = np.asarray([cls_scrs[i][k]['emean'] for k in range(len(cls_scrs[i]))])
+                y = np.asarray([cls_scrs[j][k]['emean'] for k in range(len(cls_scrs[j]))])
+                mwu_e[i,j] = scs.mannwhitneyu(x,y, alternative = 'two-sided')[1]
+                x = np.asarray([cls_scrs[i][k]['imean'] for k in range(len(cls_scrs[i]))])
+                y = np.asarray([cls_scrs[j][k]['imean'] for k in range(len(cls_scrs[j]))])
+                mwu_i[i,j] = scs.mannwhitneyu(x,y, alternative = 'two-sided')[1]
+                c_i_fits = np.asarray(compute_totalfit(cls_scrs[i]))
+                c_j_fits = np.asarray(compute_totalfit(cls_scrs[j]))
+                mwu_t[i,j] = scs.mannwhitneyu(c_i_fits, c_j_fits, alternative = 'two-sided')[1]
+    
+    return [mwu_e, mwu_i, mwu_t]
 # %%
 if __name__ == "__main__":
     
@@ -231,19 +235,53 @@ if __name__ == "__main__":
     labels += ['Node-Centric']
     color += [d3['Category20'][20][6]]
     
+    
     # Add the naive point.    
     ifile8 = '../../data/interim/t-naive-cls'
     append_data_file(ifile8, xdata, ydata, xmstd, ymstd, tdata, tmstd)
     xmstd[-1:] = ' '  #  Since only 1 orientation, 'error/std' is meaningless
     ymstd[-1:] = ' '  #  Since only 1 orientation, 'error/std' is meaningless
-    labels += ['Naive Ideal']
+    labels += ['Naive']
     color += [d3['Category20'][20][7]]
     
-    mannw_results = mannw(list([ifile, ifile2, ifile3, ifile4, ifile5, ifile6]), labels[:-3])
+    #mannw_results = mannw(list([ifile, ifile2])) #, ifile3, ifile4, ifile5, ifile6]), labels[:-3])
+    mannw_results = mannw(list([ifile, ifile2, ifile3, ifile4, ifile5, ifile6]), labels[:-2])
+    np.set_printoptions(precision = 3, suppress = False)
+    
+    mwue_df = pd.DataFrame(mannw_results[0], columns = labels[:-2])
+    mwui_df = pd.DataFrame(mannw_results[1], columns = labels[:-2])
+    mwut_df = pd.DataFrame(mannw_results[2], columns = labels[:-2])
+    
+    #Getting these to display nicely in bokeh/pandas was taking too long. Just
+    # printed them and put into latex table.
+#    print(mwue_df)
+#    print(mwui_df)
+#    print(mwut_df)
 
+
+#    src_mwue = ColumnDataSource(mwue_df)
+#    src_mwue.add(labels[:-2],name = 'algs')
+#    
+#    mwu_cols = [
+#            TableColumn(field = 'algs', title = '  '),
+#            TableColumn(field = labels[0], title = labels[0]),
+#            TableColumn(field = labels[1], title = labels[1]),
+#            TableColumn(field = labels[2], title = labels[2]),
+#            TableColumn(field = labels[3], title = labels[3]),
+#            TableColumn(field = labels[4], title = labels[4]),
+#            TableColumn(field = labels[5], title = labels[5])]
+#    
+#    mwutable = DataTable(source = src_mwue, columns = mwu_cols, row_headers = False)
+#    
+#    show(mwutable)
+    
+#    print(mannw_results[0])
+#    print(mannw_results[1])
+#    print(mannw_results[2])
+    
     # Turns out the error bars are TINY! ... so don't display them. Included
     # line and function though incase other runs/trials have larger errorbars.
-#    errorbar(p, xdata, ydata, xmstd, ymstd)
+    #errorbar(p, xdata, ydata, xmstd, ymstd)
     source = ColumnDataSource(dict(x=xdata, y=ydata, colors= color, 
                                    label = labels, xerr=xmstd, yerr=ymstd,
                                    t = tdata, terr = tmstd))
@@ -253,21 +291,32 @@ if __name__ == "__main__":
     p.legend.click_policy = "mute"
     p.legend.location = "bottom_right"
     p.title.text = 'Average Interior vs. Exterior Fitness Per Optimization'
+    p.title.align = 'center'
+    
+    myformat = NumberFormatter(format = "0.000[00]")
     
     columns = [
             TableColumn(field = "label", title = "Algorithm(s)"),
-            TableColumn(field = "x", title = "Ext. Fitness", formatter = NumberFormatter(format = '0.000[00]')),
-            TableColumn(field = "xerr", title = "E. Fit. Std. M. Err", formatter = NumberFormatter(format = '0.000[00]')),
-            TableColumn(field = "y", title = "Int. Fitness", formatter = NumberFormatter(format = '0.000[00]')),
-            TableColumn(field = "yerr", title = "Int. Fit. Std. M. Err", formatter = NumberFormatter(format = '0.000[00]')),
-            TableColumn(field = "t", title = "Avg. Fitness", formatter = NumberFormatter(format = '0.000[00]')),
-            TableColumn(field = "terr", title = "Fit. Std. M. Err", formatter = NumberFormatter(format = '0.000[00]'))]
+            TableColumn(field = "x", title = "Ext. Fitness", formatter = myformat),
+            TableColumn(field = "xerr", title = "E. Fit. Std. M. Err", formatter = myformat),
+            TableColumn(field = "y", title = "Int. Fitness", formatter = myformat),
+            TableColumn(field = "yerr", title = "Int. Fit. Std. M. Err", formatter = myformat),
+            TableColumn(field = "t", title = "Avg. Fitness", formatter = myformat),
+            TableColumn(field = "terr", title = "Fit. Std. M. Err", formatter = myformat)]
     
-    #source2 = ColumnDataSource(data=dict())
-    #source2.data = { 'algs':labels, 'xdata':xdata, 'xmstd':xmstd, 'ydata':ydata, 'ymstd':ymstd}
+    source2 = ColumnDataSource(data=dict())
+    source2.data = { 'algs':labels, 'xdata':xdata, 'xmstd':xmstd, 'ydata':ydata, 'ymstd':ymstd}
     
-    data_table = DataTable(source=source, columns=columns, row_headers= False, width=800)
+    data_table = DataTable(source=source, columns=columns, row_headers= False, width=1000)
     
+    with open(ifile7, 'rb') as f:
+        cls_scr_node = pickle.load(f)
     
+    node_scatter = figure(title = "Community Fitness for Node-Centric Solution",
+                          x_axis_label = "External Fitness",
+                          y_axis_label = "Internal Fitness")
+    node_scatter.scatter(cls_scr_node[0]['efit'], cls_scr_node[0]['ifit'])
+    node_scatter.title.align = 'center'
     
-    show(column(p, data_table))
+    #show(node_scatter)
+    show(column(p, data_table, node_scatter))

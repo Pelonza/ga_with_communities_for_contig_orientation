@@ -204,6 +204,7 @@ if __name__ == "__main__":
         fig.legend.click_policy = "hide"
         fig.x_range = Range1d(0, 3000)
         fig.xaxis.bounds = (0, 2500)
+        fig.title.align = "center"
 
     for fig in figs_full:
         fig.y_range = Range1d(0.5, 0.65)

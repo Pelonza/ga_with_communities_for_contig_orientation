@@ -229,10 +229,9 @@ def pickle_clsdata(ifile, ofile, ifile2 = None):
     with open(ifile,'r') as f:
         df = json.load(f)
     
-    print(ifile, ofile)
     if ifile2:
-#        with open(ifile2,'r') as f:
-#            df += json.load(f)
+        with open(ifile2,'r') as f:
+            df += json.load(f)
             
         ortsdata = [df[k][1] for k in range(len(df))]
     else:
@@ -249,62 +248,56 @@ def pickle_clsdata(ifile, ofile, ifile2 = None):
 # %%
 if __name__ == "__main__":
 
-    """
-    This '2' file loads the longer runs of turkey
-    
-    """
-    
     global G_full
     global G_full_clusters
     
     # Load the turkey orientations and compute clusters for them.
-    G_full = load_data('../../data/raw/Turkey/orientations_tallies')
+    G_full = load_data('../../data/raw/mouse_tallies')
     G_full_dendrogram = G_full.community_fastgreedy(weights="mates")
     G_full_clusters = G_full_dendrogram.as_clustering()
     
 
 
     #  Add a preoriented comm-ga point. 
-    ifile = '../../data/turkey_prcmga_2.stat'
-    ofile = '../../data/interim/t-prcmga2-cls'
+    ifile = '../../data/mouse_prcmga.stat'
+    ofile = '../../data/interim/m-prcmga-cls'
     pickle_clsdata(ifile, ofile)
     
 #   Some quick code for testing if things got pickled and unpickled correctly
-#    with open('../../data/interim/t-prcmga-cls', 'rb') as f:
+#    with open('../../data/interim/m-prcmga-cls', 'rb') as f:
 #        df = pickle.load(f)
 #    
 #    print(len(df))
 #    print(df[0].keys())
 
-    ifile = '../../data/turkey_prgacm_2.stat'
-    ofile = '../../data/interim/t-prgacm2-cls'
+    ifile = '../../data/mouse_prgacm.stat'
+    ofile = '../../data/interim/m-prgacm-cls'
     pickle_clsdata(ifile, ofile)
     
-    ifile = '../../data/turkey_prga_2.stat'       
-    ifile2 = '../../data/turkey-empty' #empty file to preserve ga-style load.
-    ofile = '../../data/interim/t-prga2-cls'
+    ifile = '../../data/mouse_prga.stat'
+    ifile2 = '../../data/turkey-empty'
+    ofile = '../../data/interim/m-prga-cls'
     pickle_clsdata(ifile, ofile, ifile2)
     
-    # May have run the wrong optimization type on this one!
-    ifile = '../../data/turkey_cmga_2.stat'
-    ofile = '../../data/interim/t-cmga2-cls'
+    ifile = '../../data/mouse_cmga.stat'
+    ofile = '../../data/interim/m-cmga-cls'
     pickle_clsdata(ifile, ofile)
     
-    ifile = '../../data/turkey_gacm_2.stat'
-    ofile = '../../data/interim/t-gacm2-cls'
+    ifile = '../../data/mouse_gacm.stat'
+    ofile = '../../data/interim/m-gacm-cls'
     pickle_clsdata(ifile, ofile)
-#    
+    
 #    ifile = '../../data/turkey_longGA_A.stat'
 #    ifile2 = '../../data/turkey_longGA_B.stat'
-#    ofile = '../../data/interim/t-longGA-cls'
+#    ofile = '../../data/interim/m-longGA-cls'
 #    pickle_clsdata(ifile, ofile, ifile2)
-#    
-#    # We don't need to parallize the next two since there's only ort each!
-#    node_ort = node_centric(G_full)
-#    cls_scr = [Internal_External(list([G_full, G_full_clusters, node_ort]))]
-#    with open('../../data/interim/t-node-cls','wb') as f:
-#        pickle.dump(cls_scr,f)
-#    
-#    cls_scr = [Internal_External_naive(G_full, G_full_clusters)]
-#    with open('../../data/interim/t-naive-cls','wb') as f:
-#        pickle.dump(cls_scr,f)
+    
+    # We don't need to parallize the next two since there's only ort each!
+    node_ort = node_centric(G_full)
+    cls_scr = [Internal_External(list([G_full, G_full_clusters, node_ort]))]
+    with open('../../data/interim/m-node-cls','wb') as f:
+        pickle.dump(cls_scr,f)
+    
+    cls_scr = [Internal_External(list([G_full, G_full_clusters, [False]*G_full.vcount()]))]
+    with open('../../data/interim/m-naive-cls','wb') as f:
+        pickle.dump(cls_scr,f)
