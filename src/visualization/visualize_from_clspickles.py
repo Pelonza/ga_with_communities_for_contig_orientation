@@ -48,6 +48,7 @@ import numpy as np
 import networkx as nx
 import igraph as ig
 import pickle
+import scipy.stats as scs
 
 def load_data(input_filename):
     # Read in tally file, assuming a 6-column format, no duplicated edges
@@ -101,6 +102,13 @@ def append_data_file(ifile, xdata, ydata, xmstd, ymstd, tdata, tmstd):
     ymstd += [np.std([cls_scr[k]['imean'] for k in range(len(cls_scr))])/np.sqrt(len(cls_scr))]
     
     #  Compute a bunch of intermediate values
+    aryfits = compute_totalfit(cls_scr)
+    tdata += [np.mean(aryfits)]
+    tmstd += [np.std(aryfits)/np.sqrt(len(aryfits))]
+
+    return
+
+def compute_totalfit(cls_scr):
     tigs = [np.sum(x) for x in [cls_scr[k]['igood'] for k in range(len(cls_scr))]]
     tegs = [np.sum(x) for x in [cls_scr[k]['egood'] for k in range(len(cls_scr))]]
     tebs = [np.sum(x) for x in [cls_scr[k]['ebad'] for k in range(len(cls_scr))]]
@@ -108,11 +116,9 @@ def append_data_file(ifile, xdata, ydata, xmstd, ymstd, tdata, tmstd):
     tgood = np.sum([tigs, tegs], axis = 0)/2  #  total good
     tmps = np.sum([tigs, tegs, tibs, tebs], axis = 0 )/2  #  total matepairs
     aryfits = tgood/tmps
-    tdata += [np.mean(aryfits)]
-    tmstd += [np.std(aryfits)/np.sqrt(len(aryfits))]
-
-    return
-
+    
+    return aryfits
+    
 def errorbar(fig, x, y, xerr=None, yerr=None, color='red', 
              point_kwargs={}, error_kwargs={}):
 
@@ -133,7 +139,30 @@ def errorbar(fig, x, y, xerr=None, yerr=None, color='red',
           y_err_x.append((px, px))
           y_err_y.append((py - err, py + err))
       fig.multi_line(y_err_x, y_err_y, color=color, **error_kwargs)
-      
+
+def mannw(files, labels):
+    # this produces 3 matrices of mannwhitneyu tests.
+    cls_scrs = []
+    for fname in files:
+        with open(fname, 'rb') as f:
+            cls_scr += [pickle.load(f)]
+    
+    mwu_e = np.zeros((len(files), len(files)))
+    mwu_i = np.zeros((len(files), len(files)))
+    mwu_t = np.zeros((len(files), len(files)))
+
+    for i in range(len(files)):
+        for j in range(len(files)):
+            x = [cls_scrs[i][k]['emean'] for k in range(len(cls_scrs[i]))]
+            y = [cls_scrs[j][k]['emean'] for k in range(len(cls_scrs[j]))]
+            mwu_e[i,j] = scs.mannwhitneyu(x,y, alternative = 'two-sided')
+            x = [cls_scrs[i][k]['imean'] for k in range(len(cls_scrs[i]))]
+            y = [cls_scrs[j][k]['imean'] for k in range(len(cls_scrs[j]))]
+            mwu_i[i,j] = scs.mannwhitneyu(x,y, alternative = 'two-sided')
+            c_i_fits = compute_totalfit(cls_scrs[i])
+            c_j_fits = compute_totalfit(cls_scrs[j])
+            mwu_t[i,j] = scs.mannwhitneyu(c_i_fits, c_j_fits, alternative = 'two-sided')
+            
 # %%
 if __name__ == "__main__":
     
@@ -163,51 +192,53 @@ if __name__ == "__main__":
     color += [d3['Category20'][20][0]]    
 
     #  Add a preoriented ga-comm point. 
-    ifile = '../../data/interim/t-prgacm-cls'
-    append_data_file(ifile, xdata, ydata, xmstd, ymstd, tdata, tmstd)
+    ifile2 = '../../data/interim/t-prgacm-cls'
+    append_data_file(ifile2, xdata, ydata, xmstd, ymstd, tdata, tmstd)
     labels += ['Node-Centric with GA-GRP']
     color += [d3['Category20'][20][1]]
 
     #  Add the preoriented ga point.
-    ifile = '../../data/interim/t-prga-cls'
-    append_data_file(ifile, xdata, ydata, xmstd, ymstd, tdata, tmstd)
+    ifile3 = '../../data/interim/t-prga-cls'
+    append_data_file(ifile3, xdata, ydata, xmstd, ymstd, tdata, tmstd)
     labels += ['Node-Centric with GA']
     color += [d3['Category20'][20][2]]
     
     # Add the Comm-GA point
-    ifile = '../../data/interim/t-cmga-cls'
-    append_data_file(ifile, xdata, ydata, xmstd, ymstd, tdata, tmstd)
+    ifile4 = '../../data/interim/t-cmga-cls'
+    append_data_file(ifile4, xdata, ydata, xmstd, ymstd, tdata, tmstd)
     labels += ['Comm - GA']
     color += [d3['Category20'][20][3]]
 
     #  Add the ga-comm data point.
-    ifile = '../../data/interim/t-gacm-cls'
-    append_data_file(ifile, xdata, ydata, xmstd, ymstd, tdata, tmstd)
+    ifile5 = '../../data/interim/t-gacm-cls'
+    append_data_file(ifile5, xdata, ydata, xmstd, ymstd, tdata, tmstd)
     labels += ['GA-Comm']
     color += [d3['Category20'][20][4]]
 
     #  Add the preoriented ga point.
-    ifile = '../../data/interim/t-longGA-cls'
-    append_data_file(ifile, xdata, ydata, xmstd, ymstd, tdata, tmstd)
+    ifile6 = '../../data/interim/t-longGA-cls'
+    append_data_file(ifile6, xdata, ydata, xmstd, ymstd, tdata, tmstd)
     labels += ['GA']
     color += [d3['Category20'][20][5]]
 
 
     # Add the node-centric point
-    ifile = '../../data/interim/t-node-cls'
-    append_data_file(ifile, xdata, ydata, xmstd, ymstd, tdata, tmstd)
+    ifile7 = '../../data/interim/t-node-cls'
+    append_data_file(ifile7, xdata, ydata, xmstd, ymstd, tdata, tmstd)
     xmstd[-1:] = ' '  #  Since only 1 orientation, 'error/std' is meaningless
     ymstd[-1:] = ' '  #  Since only 1 orientation, 'error/std' is meaningless
     labels += ['Node-Centric']
     color += [d3['Category20'][20][6]]
     
-#    # Add the naive point.    
-#    ifile = '../../data/interim/t-naive-cls'
-#    append_data_file(ifile, xdata, ydata, xmstd, ymstd, tdata, tmstd)
-#    xmstd[-1:] = ' '  #  Since only 1 orientation, 'error/std' is meaningless
-#    ymstd[-1:] = ' '  #  Since only 1 orientation, 'error/std' is meaningless
-#    labels += ['Naive Ideal']
-#    color += [d3['Category20'][20][7]]
+    # Add the naive point.    
+    ifile8 = '../../data/interim/t-naive-cls'
+    append_data_file(ifile8, xdata, ydata, xmstd, ymstd, tdata, tmstd)
+    xmstd[-1:] = ' '  #  Since only 1 orientation, 'error/std' is meaningless
+    ymstd[-1:] = ' '  #  Since only 1 orientation, 'error/std' is meaningless
+    labels += ['Naive Ideal']
+    color += [d3['Category20'][20][7]]
+    
+    mannw_results = mannw(list([ifile, ifile2, ifile3, ifile4, ifile5, ifile6]), labels[:-3])
 
     # Turns out the error bars are TINY! ... so don't display them. Included
     # line and function though incase other runs/trials have larger errorbars.

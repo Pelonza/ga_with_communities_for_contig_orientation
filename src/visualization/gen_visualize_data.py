@@ -38,13 +38,7 @@ Files visualized in script 4:
     
 """
 
-from bokeh.plotting import figure, output_file, show
-from bokeh.layouts import row, column, gridplot
-from bokeh.palettes import d3
-from bokeh.models import ColumnDataSource
-from bokeh.models.widgets import DataTable, TableColumn
 import json
-import os
 import numpy as np
 import networkx as nx
 import igraph as ig
@@ -304,6 +298,6 @@ if __name__ == "__main__":
     with open('../../data/interim/t-node-cls','wb') as f:
         pickle.dump(cls_scr,f)
     
-    cls_scr = [Internal_External_naive(G_full, G_full_clusters)]
+    cls_scr = [Internal_External(list([G_full, G_full_clusters, [False]*G_full.vcount()]))]
     with open('../../data/interim/t-naive-cls','wb') as f:
         pickle.dump(cls_scr,f)
