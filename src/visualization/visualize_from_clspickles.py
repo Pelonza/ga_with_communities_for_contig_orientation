@@ -43,6 +43,7 @@ from bokeh.layouts import row, column, gridplot
 from bokeh.palettes import d3
 from bokeh.models import ColumnDataSource
 from bokeh.models.widgets import DataTable, TableColumn
+from bokeh.models.widgets.tables import NumberFormatter
 import json
 import numpy as np
 import networkx as nx
@@ -255,12 +256,12 @@ if __name__ == "__main__":
     
     columns = [
             TableColumn(field = "label", title = "Algorithm(s)"),
-            TableColumn(field = "x", title = "Ext. Fitness"),
-            TableColumn(field = "xerr", title = "E. Fit. Std. M. Err"),
-            TableColumn(field = "y", title = "Int. Fitness"),
-            TableColumn(field = "yerr", title = "Int. Fit. Std. M. Err"),
-            TableColumn(field = "t", title = "Avg. Fitness"),
-            TableColumn(field = "terr", title = "Fit. Std. M. Err")]
+            TableColumn(field = "x", title = "Ext. Fitness", formatter = NumberFormatter(format = '0.000[00]')),
+            TableColumn(field = "xerr", title = "E. Fit. Std. M. Err", formatter = NumberFormatter(format = '0.000[00]')),
+            TableColumn(field = "y", title = "Int. Fitness", formatter = NumberFormatter(format = '0.000[00]')),
+            TableColumn(field = "yerr", title = "Int. Fit. Std. M. Err", formatter = NumberFormatter(format = '0.000[00]')),
+            TableColumn(field = "t", title = "Avg. Fitness", formatter = NumberFormatter(format = '0.000[00]')),
+            TableColumn(field = "terr", title = "Fit. Std. M. Err", formatter = NumberFormatter(format = '0.000[00]'))]
     
     #source2 = ColumnDataSource(data=dict())
     #source2.data = { 'algs':labels, 'xdata':xdata, 'xmstd':xmstd, 'ydata':ydata, 'ymstd':ymstd}

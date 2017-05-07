@@ -291,6 +291,7 @@ if __name__ == "__main__":
     ofile = '../../data/interim/t-prga2-cls'
     pickle_clsdata(ifile, ofile, ifile2)
     
+    # May have run the wrong optimization type on this one!
     ifile = '../../data/turkey_cmga_2.stat'
     ofile = '../../data/interim/t-cmga2-cls'
     pickle_clsdata(ifile, ofile)
