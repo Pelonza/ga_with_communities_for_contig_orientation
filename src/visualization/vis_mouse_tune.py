@@ -228,7 +228,7 @@ if __name__ == "__main__":
 
     lay1 = column([cx_comfig, mut_comfig, mutid_comfig])
     lay2 = column([cxfig, mut_fig, mutidfig])
-    lay3 = column([row([swp2x_fig, swp2xB_fig]), row([swp2xC_fig, None])])
+    lay3 = column([swp2x_fig, swp2xB_fig, swp2xC_fig])
     tab1 = Panel(child=lay1, title = "By Communities")
     tab2 = Panel(child=lay2, title = "All Mate-Pairs")
     tab3 = Panel(child=lay3, title = "2 Changing Parameters")
