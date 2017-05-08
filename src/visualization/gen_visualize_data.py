@@ -259,9 +259,9 @@ if __name__ == "__main__":
 
 
     #  Add a preoriented comm-ga point. 
-    ifile = '../../data/turkey_prcmga.stat'
-    ofile = '../../data/interim/t-prcmga-cls'
-    pickle_clsdata(ifile, ofile)
+#    ifile = '../../data/turkey_prcmga.stat'
+#    ofile = '../../data/interim/t-prcmga-cls'
+#    pickle_clsdata(ifile, ofile)
     
 #   Some quick code for testing if things got pickled and unpickled correctly
 #    with open('../../data/interim/t-prcmga-cls', 'rb') as f:
@@ -270,22 +270,22 @@ if __name__ == "__main__":
 #    print(len(df))
 #    print(df[0].keys())
 
-    ifile = '../../data/turkey_prgacm.stat'
-    ofile = '../../data/interim/t-prgacm-cls'
-    pickle_clsdata(ifile, ofile)
-    
-    ifile = '../../data/turkey_prga_A.stat'
-    ifile2 = '../../data/turkey_prga_B.stat'
-    ofile = '../../data/interim/t-prga-cls'
-    pickle_clsdata(ifile, ofile, ifile2)
-    
-    ifile = '../../data/turkey_cmga.stat'
-    ofile = '../../data/interim/t-cmga-cls'
-    pickle_clsdata(ifile, ofile)
-    
-    ifile = '../../data/turkey_gacm.stat'
-    ofile = '../../data/interim/t-gacm-cls'
-    pickle_clsdata(ifile, ofile)
+#    ifile = '../../data/turkey_prgacm.stat'
+#    ofile = '../../data/interim/t-prgacm-cls'
+#    pickle_clsdata(ifile, ofile)
+#    
+#    ifile = '../../data/turkey_prga_A.stat'
+#    ifile2 = '../../data/turkey_prga_B.stat'
+#    ofile = '../../data/interim/t-prga-cls'
+#    pickle_clsdata(ifile, ofile, ifile2)
+#    
+#    ifile = '../../data/turkey_cmga.stat'
+#    ofile = '../../data/interim/t-cmga-cls'
+#    pickle_clsdata(ifile, ofile)
+#    
+#    ifile = '../../data/turkey_gacm.stat'
+#    ofile = '../../data/interim/t-gacm-cls'
+#    pickle_clsdata(ifile, ofile)
     
     ifile = '../../data/turkey_longGA_A.stat'
     ifile2 = '../../data/turkey_longGA_B.stat'
@@ -293,11 +293,11 @@ if __name__ == "__main__":
     pickle_clsdata(ifile, ofile, ifile2)
     
     # We don't need to parallize the next two since there's only ort each!
-    node_ort = node_centric(G_full)
-    cls_scr = [Internal_External(list([G_full, G_full_clusters, node_ort]))]
-    with open('../../data/interim/t-node-cls','wb') as f:
-        pickle.dump(cls_scr,f)
-    
-    cls_scr = [Internal_External(list([G_full, G_full_clusters, [False]*G_full.vcount()]))]
-    with open('../../data/interim/t-naive-cls','wb') as f:
-        pickle.dump(cls_scr,f)
+#    node_ort = node_centric(G_full)
+#    cls_scr = [Internal_External(list([G_full, G_full_clusters, node_ort]))]
+#    with open('../../data/interim/t-node-cls','wb') as f:
+#        pickle.dump(cls_scr,f)
+#    
+#    cls_scr = [Internal_External(list([G_full, G_full_clusters, [False]*G_full.vcount()]))]
+#    with open('../../data/interim/t-naive-cls','wb') as f:
+#        pickle.dump(cls_scr,f)
