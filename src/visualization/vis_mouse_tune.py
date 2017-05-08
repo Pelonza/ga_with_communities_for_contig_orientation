@@ -78,8 +78,8 @@ if __name__ == "__main__":
     # Also, add sub-titles with fixed parameters.
     # ==========================
     
-    cxfig=figure(title="Crossover Parameter Sweep")
-    cx_comfig=figure(title="Crossover Parameter Sweep on Communities")
+    cxfig=figure(title="Crossover Parameter Sweep: Mouse")
+    cx_comfig=figure(title="Crossover Parameter Sweep on Communities: Mouse")
     
     for src, fig in zip([M_cx, M_cx_comm],[cxfig, cx_comfig]):
         fig.add_layout( Title(text = "Fixed Mutation: " + 
@@ -87,8 +87,8 @@ if __name__ == "__main__":
                               " Fixed Ind. Mutation: " + 
                               str(src[0][0]['tparam'][4]), align="center" ), "below")   
     
-    mut_comfig=figure(title="Mutation Parameter Sweep on Communities")
-    mut_fig=figure(title="Mutation Parameter Sweep")
+    mut_comfig=figure(title="Mutation Parameter Sweep on Communities: Mouse")
+    mut_fig=figure(title="Mutation Parameter Sweep: Mouse")
     
     for src, fig in zip([M_mut, M_mut_comm],[mut_fig, mut_comfig]):
         fig.add_layout( Title(text = "Fixed Crossover: " + 
@@ -96,8 +96,8 @@ if __name__ == "__main__":
                               " Fixed Ind. Mutation: " + 
                               str(src[0][0]['tparam'][4]), align="center" ), "below")
     
-    mutidfig = figure(title="Independent Mutation Parameter Sweep")
-    mutid_comfig = figure(title="Independent Mutation Parameter Sweep on Communities")
+    mutidfig = figure(title="Independent Mutation Parameter Sweep: Mouse")
+    mutid_comfig = figure(title="Independent Mutation Parameter Sweep on Communities: Mouse")
  
     for src, fig in zip([M_mutid, M_mutid_comm],[mutidfig, mutid_comfig]):
         fig.add_layout( Title(text = "Fixed Crossover: " + 
@@ -105,8 +105,8 @@ if __name__ == "__main__":
                               " Fixed Mutation: " + 
                               str(src[0][0]['tparam'][2]), align="center" ), "below")
 
-    swp2x_fig = figure(title = "Sweeping Two Parameters - Mouse")
-    swp2xB_fig = figure(title = "Sweeping Two Parameters B- Mouse")
+    swp2x_fig = figure(title = "Sweeping Two Parameters: Mouse")
+    swp2xB_fig = figure(title = "Sweeping Two Parameters: Mouse")
 
     # Figure lists for iterating over.
     figs_20v = [cxfig, mut_fig, cx_comfig, mut_comfig]    

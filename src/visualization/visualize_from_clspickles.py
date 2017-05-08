@@ -44,6 +44,7 @@ from bokeh.palettes import d3
 from bokeh.models import ColumnDataSource
 from bokeh.models.widgets import DataTable, TableColumn
 from bokeh.models.widgets import NumberFormatter
+from bokeh.models import Title, Range1d
 import json
 import numpy as np
 import networkx as nx
@@ -290,7 +291,7 @@ if __name__ == "__main__":
 
     p.legend.click_policy = "mute"
     p.legend.location = "bottom_right"
-    p.title.text = 'Average Interior vs. Exterior Fitness Per Optimization'
+    p.title.text = 'Average Interior vs. Exterior Fitness Per Optimization: Turkey'
     p.title.align = 'center'
     
     myformat = NumberFormatter(format = "0.000[00]")
@@ -312,11 +313,26 @@ if __name__ == "__main__":
     with open(ifile7, 'rb') as f:
         cls_scr_node = pickle.load(f)
     
-    node_scatter = figure(title = "Community Fitness for Node-Centric Solution",
+    node_scatter = figure(title = "Community Fitness for Node-Centric Solution: Turkey",
                           x_axis_label = "External Fitness",
                           y_axis_label = "Internal Fitness")
     node_scatter.scatter(cls_scr_node[0]['efit'], cls_scr_node[0]['ifit'])
     node_scatter.title.align = 'center'
+    node_scatter.x_range = Range1d(-0.04, 1.04)
+    node_scatter.y_range = Range1d(0.4, 1.02)
+    
+
+    with open(ifile8, 'rb') as f:
+        cls_scr_node = pickle.load(f)
+    
+    naive_scatter = figure(title = "Community Fitness for Raw Data: Turkey",
+                          x_axis_label = "External Fitness",
+                          y_axis_label = "Internal Fitness")
+    naive_scatter.scatter(cls_scr_node[0]['efit'], cls_scr_node[0]['ifit'])
+    naive_scatter.title.align = 'center'
+    naive_scatter.x_range = Range1d(-0.04, 1.04)
+    naive_scatter.y_range = Range1d(0.4, 1.02)
+
     
     #show(node_scatter)
-    show(column(p, data_table, node_scatter))
+    show(column(p, data_table, node_scatter, naive_scatter))
