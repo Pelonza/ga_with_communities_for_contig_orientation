@@ -70,9 +70,10 @@ if __name__ == "__main__":
     # Load 2x Parameter sweeps. These are funny indexing!
     swp2x_A_df = load('../../data/interim/mouse_2xswp_15_30mut_20_30cx.stat')
     swp2x_B_df = load('../../data/interim/mouse_2xswp_15_40mut_15_35cx.stat')
-    swp2x_C_df = load('../../data/interim/mouse_2xswp_30_50mut_35_50cx.stat')    
+    swp2x_C_df = load('../../data/interim/mouse_2xswp_30_50mut_35_50cx.stat')
+    swp2x_D_df = load('../../data/interim/mouse_2xswp_high.stat')
     
-    sources_other = [swp2x_A_df, swp2x_B_df, swp2x_C_df]
+    sources_other = [swp2x_A_df, swp2x_B_df, swp2x_C_df, swp2x_D_df]
     # ==========================
     # Create some of the figures
     # Also, add sub-titles with fixed parameters.
@@ -107,13 +108,14 @@ if __name__ == "__main__":
 
     swp2x_fig = figure(title = "Sweeping Two Parameters: Mouse")
     swp2xB_fig = figure(title = "Sweeping Two Parameters: Mouse")
+    swp2xC_fig = figure(title = "Sweeping Two Parameters: Mouse")
 
     # Figure lists for iterating over.
     figs_20v = [cxfig, mut_fig, cx_comfig, mut_comfig]    
     figs_10v = [mutid_comfig, mutidfig]
     figs_comm = [cx_comfig, mut_comfig, mutid_comfig]
     figs_full = [cxfig, mut_fig, mutidfig]
-    figs_2x = [swp2x_fig, swp2xB_fig]
+    figs_2x = [swp2x_fig, swp2xB_fig, swp2xC_fig]
       
     # =====================
     # Plot the actual data!
@@ -183,8 +185,6 @@ if __name__ == "__main__":
                        " Id. Mut. = "+str(swp2x_B_df[j][0]['tparam'][4]),
                        line_color= d3['Category20'][20][j+3],
                        muted_alpha=0.2, alpha=1)
-        
-    
 
     for j in range(20):
         df = [swp2x_C_df[j][k]['tmax'] for k in range(len(swp2x_C_df[0][0]))]
@@ -193,6 +193,16 @@ if __name__ == "__main__":
                        legend="Cx. = "+str(swp2x_C_df[j][0]['tparam'][3])
                        +" Mut. = "+str(swp2x_C_df[j][0]['tparam'][2])+
                        " Id. Mut. = "+str(swp2x_C_df[j][0]['tparam'][4]),
+                       line_color= d3['Category20'][20][j],
+                       muted_alpha=0.2, alpha=1)
+
+    for j in range(12):
+        df = [swp2x_D_df[j][k]['tmax'] for k in range(len(swp2x_D_df[0][0]))]
+        avg_tmax = (np.mean(df, axis=0)).tolist()
+        swp2xC_fig.line(swp2x_D_df[0][0]['tgen'], avg_tmax, 
+                       legend="Cx. = "+str(swp2x_D_df[j][0]['tparam'][3])
+                       +" Mut. = "+str(swp2x_D_df[j][0]['tparam'][2])+
+                       " Id. Mut. = "+str(swp2x_D_df[j][0]['tparam'][4]),
                        line_color= d3['Category20'][20][j],
                        muted_alpha=0.2, alpha=1)
 
@@ -213,12 +223,12 @@ if __name__ == "__main__":
         fig.y_range = Range1d(0.65, 0.95)
     
     for fig in figs_2x:
-        fig.y_range = Range1d(0.55, 0.7)
+        fig.y_range = Range1d(0.55, 0.8)
         fig.x_range = Range1d(0,4500)
 
     lay1 = column([cx_comfig, mut_comfig, mutid_comfig])
     lay2 = column([cxfig, mut_fig, mutidfig])
-    lay3 = row([swp2x_fig, swp2xB_fig])
+    lay3 = column([row([swp2x_fig, swp2xB_fig]), row([swp2xC_fig, None])])
     tab1 = Panel(child=lay1, title = "By Communities")
     tab2 = Panel(child=lay2, title = "All Mate-Pairs")
     tab3 = Panel(child=lay3, title = "2 Changing Parameters")
