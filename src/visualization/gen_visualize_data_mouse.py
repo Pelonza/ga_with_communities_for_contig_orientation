@@ -230,8 +230,8 @@ def pickle_clsdata(ifile, ofile, ifile2 = None):
         df = json.load(f)
     
     if ifile2:
-        with open(ifile2,'r') as f:
-            df += json.load(f)
+#        with open(ifile2,'r') as f:
+#            df += json.load(f)
             
         ortsdata = [df[k][1] for k in range(len(df))]
     else:
@@ -287,10 +287,10 @@ if __name__ == "__main__":
     ofile = '../../data/interim/m-gacm-cls'
     pickle_clsdata(ifile, ofile)
     
-#    ifile = '../../data/turkey_longGA_A.stat'
-#    ifile2 = '../../data/turkey_longGA_B.stat'
-#    ofile = '../../data/interim/m-longGA-cls'
-#    pickle_clsdata(ifile, ofile, ifile2)
+    ifile = '../../data/mouse_ga.stat'
+    ifile2 = '../../data/turkey-empty'
+    ofile = '../../data/interim/m-longGA-cls'
+    pickle_clsdata(ifile, ofile, ifile2)
     
     # We don't need to parallize the next two since there's only ort each!
     node_ort = node_centric(G_full)
