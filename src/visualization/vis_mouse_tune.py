@@ -215,6 +215,14 @@ if __name__ == "__main__":
         fig.x_range = Range1d(0, 3000)
         fig.xaxis.bounds = (0, 2500)
         fig.title.align = "center"
+        fig.xaxis.axis_label_text_font_size = '16pt'
+        fig.yaxis.axis_label_text_font_size = '16pt'
+        fig.yaxis.major_label_text_font_size = '16pt'
+        fig.xaxis.major_label_text_font_size = '16pt'
+        fig.legend.label_text_font_size = '12pt'
+        fig.legend.border_line_width = 2
+        fig.legend.border_line_alpha = 0.3
+        fig.title.text_font_size = '14pt'
 
     for fig in figs_full:
         fig.y_range = Range1d(0.5, 0.65)
@@ -233,7 +241,7 @@ if __name__ == "__main__":
     tab2 = Panel(child=lay2, title = "All Mate-Pairs")
     tab3 = Panel(child=lay3, title = "2 Changing Parameters")
     
-    tabs = Tabs(tabs = [tab1, tab2, tab3])
+    tabs = Tabs(tabs = [tab2, tab1, tab3])
 
     show(tabs)
     

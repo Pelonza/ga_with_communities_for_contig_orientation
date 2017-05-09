@@ -189,10 +189,10 @@ def mannw(files, labels):
 # %%
 if __name__ == "__main__":
     
-    output_file("Turkey-MultiAlgs_Inn_Out_fit_plot_table.html")
+    output_file("Mouse-MultiAlgs_Inn_Out_fit_plot_table.html")
 
-    # Load the turkey orientations and compute clusters for them.
-    G_full = load_data('../../data/raw/Turkey/orientations_tallies')
+    # Load the mouse orientations and compute clusters for them.
+    G_full = load_data('../../data/raw/mouse_tallies')
     G_full_dendrogram = G_full.community_fastgreedy(weights="mates")
     G_full_clusters = G_full_dendrogram.as_clustering()
     #G_comm = G_full_clusters.cluster_graph(combine_edges=sum)
@@ -209,44 +209,44 @@ if __name__ == "__main__":
     p = figure(x_axis_label = 'Average External Fitness', y_axis_label = 'Average Internal Fitness')
 
     #  Add a preoriented comm-ga point. 
-    ifile = '../../data/interim/t-prcmga-cls'
+    ifile = '../../data/interim/m-prcmga-cls'
     append_data_file(ifile, xdata, ydata, xmstd, ymstd, tdata, tmstd)
     labels += ['Node-Centric with GRP - GA']
     color += [d3['Category20'][20][0]]    
 
     #  Add a preoriented ga-comm point. 
-    ifile2 = '../../data/interim/t-prgacm-cls'
+    ifile2 = '../../data/interim/m-prgacm-cls'
     append_data_file(ifile2, xdata, ydata, xmstd, ymstd, tdata, tmstd)
     labels += ['Node-Centric with GA-GRP']
     color += [d3['Category20'][20][1]]
 
     #  Add the preoriented ga point.
-    ifile3 = '../../data/interim/t-prga-cls'
+    ifile3 = '../../data/interim/m-prga-cls'
     append_data_file(ifile3, xdata, ydata, xmstd, ymstd, tdata, tmstd)
     labels += ['Node-Centric with GA']
     color += [d3['Category20'][20][2]]
     
     # Add the Comm-GA point
-    ifile4 = '../../data/interim/t-cmga-cls'
+    ifile4 = '../../data/interim/m-cmga-cls'
     append_data_file(ifile4, xdata, ydata, xmstd, ymstd, tdata, tmstd)
     labels += ['Comm - GA']
     color += [d3['Category20'][20][3]]
 
     #  Add the ga-comm data point.
-    ifile5 = '../../data/interim/t-gacm-cls'
+    ifile5 = '../../data/interim/m-gacm-cls'
     append_data_file(ifile5, xdata, ydata, xmstd, ymstd, tdata, tmstd)
     labels += ['GA-Comm']
     color += [d3['Category20'][20][4]]
 
     #  Add the preoriented ga point.
-    ifile6 = '../../data/interim/t-longGA-cls'
+    ifile6 = '../../data/interim/m-longGA-cls'
     append_data_file(ifile6, xdata, ydata, xmstd, ymstd, tdata, tmstd)
     labels += ['GA']
     color += [d3['Category20'][20][5]]
 
 
     # Add the node-centric point
-    ifile7 = '../../data/interim/t-node-cls'
+    ifile7 = '../../data/interim/m-node-cls'
     append_data_file(ifile7, xdata, ydata, xmstd, ymstd, tdata, tmstd)
     xmstd[-1:] = ' '  #  Since only 1 orientation, 'error/std' is meaningless
     ymstd[-1:] = ' '  #  Since only 1 orientation, 'error/std' is meaningless
@@ -255,7 +255,7 @@ if __name__ == "__main__":
     
     
     # Add the naive point.    
-    ifile8 = '../../data/interim/t-naive-cls'
+    ifile8 = '../../data/interim/m-naive-cls'
     append_data_file(ifile8, xdata, ydata, xmstd, ymstd, tdata, tmstd)
     xmstd[-1:] = ' '  #  Since only 1 orientation, 'error/std' is meaningless
     ymstd[-1:] = ' '  #  Since only 1 orientation, 'error/std' is meaningless
@@ -320,6 +320,7 @@ if __name__ == "__main__":
     mwutable_e = DataTable(source = src_mwue, columns = mwu_cols, row_headers = False)
     mwutable_i = DataTable(source = src_mwui, columns = mwu_cols, row_headers = False)
     mwutable_t = DataTable(source = src_mwut, columns = mwu_cols, row_headers = False)
+    mwutable_2 = DataTable(source = src_mwut, columns = mwu_cols)
     
 #    show(mwutable)
     
@@ -333,8 +334,8 @@ if __name__ == "__main__":
     p.circle(x = 'x', y = 'y', color = 'colors', legend = 'label', source = source, size = 15, muted_alpha = 0.2)
 
     p.legend.click_policy = "mute"
-    p.legend.location = "center"
-    p.title.text = 'Average Interior vs. Exterior Fitness Per Optimization: Turkey'
+    p.legend.location = "top_left"
+    p.title.text = 'Average Interior vs. Exterior Fitness: Mouse'
     p.title.align = 'center'
 
     
@@ -355,7 +356,7 @@ if __name__ == "__main__":
     with open(ifile7, 'rb') as f:
         cls_scr_node = pickle.load(f)
     
-    node_scatter = figure(title = "Community Fitness for Node-Centric Solution: Turkey",
+    node_scatter = figure(title = "Community Fitness for Node-Centric Solution: Mouse",
                           x_axis_label = "External Fitness",
                           y_axis_label = "Internal Fitness")
     node_scatter.scatter(cls_scr_node[0]['efit'], cls_scr_node[0]['ifit'])
@@ -367,14 +368,25 @@ if __name__ == "__main__":
     with open(ifile8, 'rb') as f:
         cls_scr_node = pickle.load(f)
     
-    naive_scatter = figure(title = "Community Fitness for Raw Data: Turkey",
+    naive_scatter = figure(title = "Community Fitness for Raw Data: Mouse",
                           x_axis_label = "External Fitness",
                           y_axis_label = "Internal Fitness")
+    
     naive_scatter.scatter(cls_scr_node[0]['efit'], cls_scr_node[0]['ifit'])
     naive_scatter.title.align = 'center'
     naive_scatter.x_range = Range1d(-0.04, 1.04)
     naive_scatter.y_range = Range1d(0.4, 1.02)
 
+    figures = [p, node_scatter, naive_scatter]
+    for fig in figures:
+        fig.xaxis.axis_label_text_font_size = '16pt'
+        fig.yaxis.axis_label_text_font_size = '16pt'
+        fig.yaxis.major_label_text_font_size = '16pt'
+        fig.xaxis.major_label_text_font_size = '16pt'
+        fig.legend.label_text_font_size = '12pt'
+        fig.legend.border_line_width = 2
+        fig.legend.border_line_alpha = 0.3
+        fig.title.text_font_size = '16pt'
     
     #show(node_scatter)
     lay1 = column([p, data_table])

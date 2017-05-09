@@ -334,8 +334,9 @@ if __name__ == "__main__":
 
     p.legend.click_policy = "mute"
     p.legend.location = "center"
-    p.title.text = 'Average Interior vs. Exterior Fitness Per Optimization: Turkey'
+    p.title.text = 'Average Interior vs. Exterior Fitness: Turkey'
     p.title.align = 'center'
+
 
     
     columns = [
@@ -370,12 +371,24 @@ if __name__ == "__main__":
     naive_scatter = figure(title = "Community Fitness for Raw Data: Turkey",
                           x_axis_label = "External Fitness",
                           y_axis_label = "Internal Fitness")
+    #naive_scatter = figure(x_axis_label = "External Fitness",
+#                          y_axis_label = "Internal Fitness")
     naive_scatter.scatter(cls_scr_node[0]['efit'], cls_scr_node[0]['ifit'])
     naive_scatter.title.align = 'center'
     naive_scatter.x_range = Range1d(-0.04, 1.04)
     naive_scatter.y_range = Range1d(0.4, 1.02)
 
-    
+    figures = [p, node_scatter, naive_scatter]
+    for fig in figures:
+        fig.xaxis.axis_label_text_font_size = '16pt'
+        fig.yaxis.axis_label_text_font_size = '16pt'
+        fig.yaxis.major_label_text_font_size = '16pt'
+        fig.xaxis.major_label_text_font_size = '16pt'
+        fig.legend.label_text_font_size = '12pt'
+        fig.legend.border_line_width = 2
+        fig.legend.border_line_alpha = 0.3    
+        fig.title.text_font_size = '16pt'
+        
     #show(node_scatter)
     lay1 = column([p, data_table])
     lay2 = column([node_scatter, naive_scatter])
